@@ -134,11 +134,16 @@ test('карты разложены по тому, чего им не хвата
 test('карты с оговорками несут примечание', () => {
   // Два прочтения со скана неуверенные: одиночный значок переворота и строка
   // без синей подложки. Примечание обязано остаться, пока нет сверки.
-  for (const id of ['ib-05', 'ib-19']) {
+  // ib-06 и ib-05: устное описание владельца расходится с напечатанным, это должно быть видно.
+  for (const id of ['ib-05', 'ib-06']) {
     const c = interbellumCompanies.find(x => x.id === id);
-    assert.ok(c.notes.length > 0, `${id}: потеряно примечание о неуверенном прочтении`);
+    assert.ok(c.notes.length > 0, `${id}: потеряно примечание о расхождении`);
     assert.match(c.notes.join(' '), /сверк/i);
   }
+  // ib-19: прочтение опирается на решение владельца, а не на иконку.
+  const nineteen = interbellumCompanies.find(x => x.id === 'ib-19');
+  assert.match(nineteen.notes.join(' '), /Владелец коробки/);
+  assert.equal(nineteen.advanced[0].kind, 'upgrade-next-in-line');
 });
 
 test('каталог дополнения пока не подмешан в игровую колоду', async () => {

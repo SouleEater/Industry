@@ -8,6 +8,12 @@ function definition(definitions, id) {
   return definitions[id];
 }
 function validateEffect(e, compensation = false) {
+  if (e && e.kind === 'supply') {
+    requireRule(!compensation, 'UNSUPPORTED_EFFECT', 'Компенсация не может быть поставкой.');
+    requireRule(e.of && ['gain', 'convert'].includes(e.of.kind), 'UNSUPPORTED_EFFECT', 'Поставка оборачивает добычу или переработку.');
+    validateEffect(e.of);
+    return;
+  }
   requireRule(e && ['gain', 'convert', 'upgrade'].includes(e.kind), 'UNSUPPORTED_EFFECT', 'Эффект ещё не поддерживается.');
   if (e.kind === 'upgrade') {
     requireRule(!compensation, 'UNSUPPORTED_EFFECT', 'Модернизация не может быть этой компенсацией.');
@@ -108,7 +114,7 @@ export function createGame({ names = ['Игрок 1', 'Игрок 2', 'Игро�
       cards: [{ id: `start${i}`, definitionId: startIds[i], upgraded: false, usedRound: 0 }],
       discs: [], managers: [], blocked: false, done: false, repeated: false })),
     lots: [], discard: [], settlement: null, production: null, pendingPair: null,
-    tables, managerDeck, managerDefs, managerDiscard: [], events: [] };
+    tables, managerDeck, managerDefs, managerDiscard: [], supplies: [], events: [] };
   if (withAgent) s.players.push({ id: 'agent', name: 'Агент', agent: true, seat: s.players.length, ability: null, capitalistId: null,
     wallet: emptyWallet(), cards: [], discs: [], managers: [], blocked: false, done: false, repeated: false, lockedOrder: [], planned: false });
   s.config.agent = withAgent;
@@ -280,7 +286,9 @@ function resolveLot(s, defs) {
     s.discard.push(lot.card);
     event(s, 'AgentTookCard', { cardId: lot.card.id, definitionId: lot.card.definitionId, value: winner.value });
   } else if (winner) {
-    player(s, winner.playerId).cards.push(lot.card);
+    const owner = player(s, winner.playerId);
+    owner.cards.push(lot.card);
+    triggerSupplies(s, defs, owner, lot.card, 'basic');
     event(s, 'CardWon', { playerId: winner.playerId, cardId: lot.card.id, definitionId: lot.card.definitionId, value: winner.value });
   } else { s.discard.push(lot.card); event(s, 'CardDiscarded', { cardId: lot.card.id }); }
   lot.resolved = true; flow.index++; flow.cursor = 0; flow.queue = null;
@@ -323,11 +331,40 @@ function addLocal(card, values) {
   for (const [k, v] of Object.entries(values)) card.local[k] = (card.local[k] ?? 0) + v;
 }
 
+/**
+ * Поставка (⚡) — однократный эффект вне обычной очереди: с обычной стороны срабатывает
+ * при получении карты, с модернизированной — сразу после модернизации.
+ * В фазе производства строка поставки пропускается.
+ */
+const isSupply = row => row.kind === 'supply';
+export function productionRows(card, d) {
+  return [...d.effects, ...(card.upgraded ? d.advanced ?? [] : [])].filter(row => !isSupply(row));
+}
 export function activeEffect(s, defs) {
   const active = s.production?.active;
   if (!active) return null;
   const card = owned(player(s, active.playerId), active.cardId), d = definition(defs, card.definitionId);
-  return [...d.effects, ...(card.upgraded ? d.advanced ?? [] : [])][active.index] ?? null;
+  return productionRows(card, d)[active.index] ?? null;
+}
+
+/**
+ * Запускает поставки указанной стороны. Добыча применяется сама, переработка
+ * предлагается игроку: он выбирает, сколько раз её применить.
+ */
+function triggerSupplies(s, defs, p, card, side) {
+  const d = definition(defs, card.definitionId);
+  const rows = (side === 'advanced' ? d.advanced ?? [] : d.effects).filter(isSupply);
+  for (const row of rows) {
+    const e = row.of;
+    if (e.kind === 'gain') {
+      transfer(p.wallet, {}, e.gain);
+      event(s, 'SupplyTaken', { playerId: p.id, cardId: card.id, gain: e.gain, side });
+    } else {
+      // Переработка требует решения игрока, поэтому кладём её в очередь ожидания.
+      s.supplies.push({ playerId: p.id, cardId: card.id, effect: e, side });
+      event(s, 'SupplyOffered', { playerId: p.id, cardId: card.id, side });
+    }
+  }
 }
 function automaticEffects(s, defs) {
   while (s.production.active) {
@@ -339,7 +376,7 @@ function automaticEffects(s, defs) {
       if (boost && ORDERED_MANAGER.includes(boost.kind) && !a.managerUsed) return;
       if (boost?.kind === 'if-all-sales') {
         const d = definition(defs, card.definitionId);
-        const rows = [...d.effects, ...(card.upgraded ? d.advanced ?? [] : [])];
+        const rows = productionRows(card, d);
         const sales = rows.map((row, i) => [row, i]).filter(([row]) => row.kind === 'convert' && classifyConversion(row).sale);
         // «Полностью применили» — не меньше напечатанной кратности (пояснения дополнения, стр. 11).
         if (sales.length && sales.every(([row, i]) => (a.usage?.[i] ?? 0) >= row.limit)) {
@@ -491,6 +528,17 @@ export function dispatch(state, command, defs) {
       a.usage[a.index] = (a.usage[a.index] ?? 0) + command.times;
       break;
     }
+    case 'TakeSupply': {
+      const pending = s.supplies[0];
+      requireRule(pending, 'NO_SUPPLY', 'Нет ожидающей поставки.');
+      requireRule(pending.playerId === p.id, 'NOT_YOUR_TURN', 'Эта поставка не ваша.');
+      const e = pending.effect;
+      requireRule(integer(command.times) && command.times <= e.limit, 'INVALID_COUNT', 'Превышен лимит поставки.');
+      if (command.times) convert(s, p, e, command.times, e.limit, { cardId: pending.cardId, context: 'supply' });
+      event(s, 'SupplyResolved', { playerId: p.id, cardId: pending.cardId, times: command.times });
+      s.supplies.shift();
+      break;
+    }
     case 'UseManager': {
       phase(s, 'production');
       const a = s.production.active;
@@ -503,6 +551,7 @@ export function dispatch(state, command, defs) {
         payWithLocal(card, p.wallet, boost.cost, 1);
         card.upgraded = true;
         event(s, 'CardUpgraded', { playerId: p.id, cardId: card.id, byManager: true });
+        triggerSupplies(s, defs, p, card, 'advanced');
       } else if (boost.kind === 'discard-self') {
         transfer(p.wallet, {}, boost.gain);
         p.cards = p.cards.filter(c => c.id !== card.id);
@@ -533,7 +582,9 @@ export function dispatch(state, command, defs) {
       const card = owned(p, command.cardId);
       requireRule(!card.upgraded && definition(defs, card.definitionId).kind === 'company', 'CANNOT_UPGRADE', 'Эту карту нельзя модернизировать.');
       transfer(p.wallet, upgradeCost(p)); card.upgraded = true;
-      event(s, 'CardUpgraded', { playerId: p.id, cardId: card.id }); break;
+      event(s, 'CardUpgraded', { playerId: p.id, cardId: card.id });
+      triggerSupplies(s, defs, p, card, 'advanced');
+      break;
     }
     case 'RepeatCard': {
       phase(s, 'production');
@@ -548,6 +599,7 @@ export function dispatch(state, command, defs) {
     case 'FinishProduction': {
       phase(s, 'production'); requireRule(!s.production.active, 'CARD_ACTIVE', 'Завершите текущее предприятие.');
       requireRule(p.cards.every(c => c.usedRound === s.round), 'CARDS_REMAIN', 'Используйте оставшиеся предприятия.');
+      requireRule(!s.supplies.some(x => x.playerId === p.id), 'SUPPLY_PENDING', 'Сначала разыграйте поставку.');
       p.done = true;
       if (s.players.every(p => p.done)) {
         if (s.round === 4) { s.phase = 'finished'; s.result = rankPlayers(s.players.filter(x => !isAgent(x))); event(s, 'GameFinished'); }

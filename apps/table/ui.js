@@ -445,6 +445,8 @@ function renderPrompt() {
     if (waiting) return promptBox(`Производит <b>${actorName}</b>.`, true);
     const active = s.production.active;
     const left = p.cards.filter(c => c.usedRound !== s.round).length;
+    if (s.supplies?.some(x => x.playerId === p.id))
+      return promptBox('Пришла <b>поставка</b>: однократный эффект вне обычной очереди. Возьмите её или откажитесь.');
     const box = promptBox(active
       ? 'Идёт работа предприятия — разберите строки сверху вниз.'
       : left ? `Осталось предприятий: <b>${left}</b>. Выберите следующее в линии внизу.`
@@ -593,10 +595,27 @@ function renderEffect() {
   }
 
   if (s.phase !== 'production' || !myTurn()) return;
+
+  // Поставка вне очереди: пока она не разыграна, производство не идёт дальше.
+  const supply = s.supplies?.find(x => x.playerId === p.id);
+  if (supply) {
+    const e = supply.effect;
+    let max = 0;
+    for (let t = e.limit; t >= 1; t--) if (canPay(p.wallet, e.cost, t)) { max = t; break; }
+    slot.append(counterPanel({
+      title: 'Поставка — однократно, вне очереди производства', effect: e, max,
+      runLabel: 'Взять поставку', skipLabel: 'Отказаться',
+      onRun: times => act({ type: 'TakeSupply', times }),
+      onSkip: () => act({ type: 'TakeSupply', times: 0 }),
+    }));
+    return;
+  }
+
   const a = s.production.active;
   if (!a) return;
   const card = p.cards.find(c => c.id === a.cardId), d = DEFS[card.definitionId];
-  const list = [...d.effects, ...(card.upgraded ? d.advanced : [])];
+  // Поставки идут вне очереди производства, поэтому в списке строк их нет.
+  const list = [...d.effects, ...(card.upgraded ? d.advanced : [])].filter(r => r.kind !== 'supply');
   const mgr = managerPanel(card, p);
   if (mgr) slot.append(mgr);
   const e = list[a.index];
@@ -752,6 +771,9 @@ const LOG_TEXT = {
   ManagersPlaced: (e, n) => e.count ? `<b>${n(e.playerId)}</b> расставляет управляющих: ${e.count}` : null,
   ManagerBonus: (e, n) => `<b>${n(e.playerId)}</b> получает от управляющего ${Object.entries(e.gain).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(', ')}`,
   ManagerSupplied: (e, n) => `<b>${n(e.playerId)}</b> кладёт на предприятие ${Object.entries(e.gain).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(', ')}`,
+  SupplyTaken: (e, n) => `<b>${n(e.playerId)}</b> получает поставку: ${Object.entries(e.gain).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(', ')}`,
+  SupplyOffered: (e, n) => `<b>${n(e.playerId)}</b> может разыграть поставку`,
+  SupplyResolved: (e, n) => e.times ? `<b>${n(e.playerId)}</b> разыгрывает поставку ×${e.times}` : `<b>${n(e.playerId)}</b> отказывается от поставки`,
   CardScrapped: (e, n) => `<b>${n(e.playerId)}</b> выводит предприятие из игры за ${e.gain.money} денег`,
   ManagerDiscarded: () => 'На университет не поставили — жетон сброшен',
   AgentTookManager: () => 'Жетон управляющего достался агенту и выбыл',
