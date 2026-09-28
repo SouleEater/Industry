@@ -270,18 +270,18 @@ export function dispatch(state, command, defs) {
       else if (bonus && !bonus.used) {
         // Двойка выставляется вместе с этой ставкой, поэтому легальность проверяется уже в парном режиме.
         s.pendingPair = { playerId: p.id, lotId: lot.id };
-        if (s.lots.some(l => !bidLegality(s, p, bonus, l, bonus.value))) event(s, 'PairRequired', { playerId: p.id });
+        if (s.lots.some(l => !bidLegality(s, p, bonus, l, bonus.value))) event(s, 'PairOffered', { playerId: p.id });
         else s.pendingPair = null;
       }
       advanceBid(s); break;
     }
     case 'SkipPair': {
       phase(s, 'auction');
-      requireRule(s.pendingPair?.playerId === p.id, 'NO_PAIR', 'Нет ожидаемой парной ставки.');
-      const bonus = p.discs.find(x => x.bonus);
-      requireRule(!s.lots.some(l => !bidLegality(s, p, bonus, l, bonus.value)),
-        'PAIR_AVAILABLE', 'Есть доступное предприятие — двойку нужно выставить.');
-      bonus.used = true; s.pendingPair = null; advanceBid(s); break;
+      requireRule(s.pendingPair?.playerId === p.id, 'NO_PAIR', 'Нет предложенной парной ставки.');
+      // Дополнительная двойка необязательна. «Одновременно с другой ставкой» описывает,
+      // КАК её ставить, а не обязывает ставить. Отказ не расходует диск: если игрок
+      // сделает ещё одну обычную ставку в этом раунде, двойку предложат снова.
+      s.pendingPair = null; advanceBid(s); break;
     }
     case 'ResolveLot': phase(s, 'settlement'); resolveLot(s, defs); break;
     case 'Compensate': {

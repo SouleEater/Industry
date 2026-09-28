@@ -335,7 +335,7 @@ function renderPrompt() {
     if (waiting) return promptBox(`Ставку делает <b>${actorName}</b>.`, true);
     const pair = s.pendingPair?.playerId === p.id;
     const box = promptBox(pair
-      ? 'Дополнительную двойку Артура нужно поставить <b>на другое предприятие</b> — выберите лот.'
+      ? 'Можно доставить дополнительную двойку Артура — но только <b>на другое предприятие</b>. Или пропустите: диск останется у вас.'
       : ui.disc ? 'Теперь выберите предприятие: в карточке появится расчёт обоих исходов.'
         : 'Выберите диск, затем предприятие. <b>Мелкий диск — это не проигрыш</b>, а заказ компенсации.');
 
@@ -362,7 +362,7 @@ function renderPrompt() {
       box.append(wrap);
     }
     if (pair) {
-      const skip = el('button', 'act ghost', 'Некуда поставить');
+      const skip = el('button', 'act ghost', 'Не ставить двойку');
       skip.onclick = () => act({ type: 'SkipPair' });
       box.append(skip);
     }
@@ -583,7 +583,7 @@ const LOG_TEXT = {
   BidPlaced: (e, n) => `<b>${n(e.playerId)}</b> ставит ${e.value}${e.bonus ? ' (доп. двойка)' : ''}${e.roll ? ' · d6: ' + e.roll : ''}`,
   AgentTookCard: e => `Агент забирает «${DEFS[e.definitionId].name}» за ${e.value} — карта выбывает из игры`,
   AgentBlocked: e => `Агенту ставить некуда (d6: ${e.roll})`,
-  PairRequired: (e, n) => `<b>${n(e.playerId)}</b> обязан выставить дополнительную двойку`,
+  PairOffered: (e, n) => `<b>${n(e.playerId)}</b> может доставить дополнительную двойку`,
   AuctionClosed: () => 'Ставок больше нет',
   Compensation: (e, n) => e.times ? `<b>${n(e.playerId)}</b> берёт компенсацию ×${e.times}` : `<b>${n(e.playerId)}</b> без компенсации`,
   CompensationChosen: (e, n) => `<b>${n(e.playerId)}</b> применяет компенсацию ×${e.times}`,

@@ -90,8 +90,9 @@ function autoplay(options, seed) {
         for (const l of s.lots) for (const v of values)
           if (!bidError(s, me.id, d.id, l.id, v)) moves.push({ type: 'Bid', discId: d.id, lotId: l.id, value: v });
       }
-      if (moves.length) go(moves[rnd(moves.length)]);
-      else if (s.pendingPair?.playerId === me.id) go({ type: 'SkipPair' });
+      // Дополнительная двойка необязательна: иногда отказываемся, чтобы пройти и эту ветку.
+      if (s.pendingPair?.playerId === me.id && (!moves.length || rnd(3) === 0)) go({ type: 'SkipPair' });
+      else if (moves.length) go(moves[rnd(moves.length)]);
       else assert.fail('ставить некуда, но аукцион не закрылся');
       continue;
     }
@@ -161,11 +162,11 @@ test('за фаззингом все пять способностей дейс�
   const seen = new Set();
   for (let run = 0; run < 24; run++) {
     const s = autoplay({ names: ['А', 'Б', 'В', 'Г'], capitalists: true }, 4100 + run * 53);
-    for (const e of s.events) if (['CardRepeated', 'PairRequired'].includes(e.type)) seen.add(e.type);
+    for (const e of s.events) if (['CardRepeated', 'PairOffered'].includes(e.type)) seen.add(e.type);
     for (const p of s.players) seen.add(p.ability);
   }
   for (const a of ['repeat-card', 'compensation-plus-one', 'unrestricted-bids', 'paired-extra-disc', 'metal-for-upgrade'])
     assert.ok(seen.has(a), `способность ${a} ни разу не раздалась`);
   assert.ok(seen.has('CardRepeated'), 'повтор Эвариста ни разу не сработал');
-  assert.ok(seen.has('PairRequired'), 'парная ставка Артура ни разу не потребовалась');
+  assert.ok(seen.has('PairOffered'), 'дополнительную двойку Артура ни разу не предложили');
 });

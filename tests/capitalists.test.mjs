@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, dispatch, currentActor } from '../packages/domain/engine.mjs';
+import { createGame, dispatch, currentActor, bidError } from '../packages/domain/engine.mjs';
 import { emptyWallet } from '../packages/domain/rules.mjs';
 import { compensationUnits, upgradeCost, extraDisc, pickWinner, ABILITIES } from '../packages/domain/capitalists.mjs';
 import { trainingPack as pack } from '../packages/content/training.mjs';
@@ -126,10 +126,43 @@ test('после обычной ставки Артур обязан доста�
   assert.equal(s.lots[1].bids[0].bonus, true);
 });
 
-test('пропустить парную ставку можно только когда её некуда поставить', () => {
+test('дополнительная двойка необязательна: от неё можно отказаться', () => {
   let s = withAbility('paired-extra-disc', 0);
   s = as(s, 'p0', 'Bid', { discId: 'fixed3', lotId: s.lots[0].id });
-  assert.throws(() => as(s, 'p0', 'SkipPair'), e => e.code === 'PAIR_AVAILABLE');
+  assert.equal(s.pendingPair?.playerId, 'p0', 'двойка именно предлагается');
+  s = as(s, 'p0', 'SkipPair');
+  assert.equal(s.pendingPair, null);
+  assert.equal(currentActor(s), 'p1', 'очередь уходит дальше');
+  assert.equal(s.players[0].discs.find(d => d.bonus).used, false, 'отказ не расходует диск');
+});
+
+test('после отказа двойку предлагают снова на следующей ставке', () => {
+  let s = withAbility('paired-extra-disc', 0);
+  s = as(s, 'p0', 'Bid', { discId: 'fixed3', lotId: s.lots[0].id });
+  s = as(s, 'p0', 'SkipPair');
+  s = as(s, 'p1', 'Bid', { discId: 'fixed1', lotId: s.lots[1].id });
+  s = as(s, 'p2', 'Bid', { discId: 'fixed1', lotId: s.lots[2].id });
+  s = as(s, 'p0', 'Bid', { discId: 'fixed4', lotId: s.lots[1].id });
+  assert.equal(s.pendingPair?.playerId, 'p0', 'предложение повторяется');
+  s = as(s, 'p0', 'Bid', { discId: 'bonus2', lotId: s.lots[3].id });
+  assert.equal(s.lots[3].bids[0].bonus, true);
+});
+
+test('отказ от двойки не мешает закрыть аукцион', () => {
+  let s = withAbility('paired-extra-disc', 0);
+  let guard = 0;
+  while (s.phase === 'auction' && guard++ < 200) {
+    const me = s.players.find(p => p.id === currentActor(s));
+    if (s.pendingPair?.playerId === me.id) { s = as(s, me.id, 'SkipPair'); continue; }
+    const moves = [];
+    for (const d of me.discs) if (!d.used && !d.bonus)
+      for (const l of s.lots) if (!bidError(s, me.id, d.id, l.id, d.value)) moves.push({ discId: d.id, lotId: l.id });
+    if (!moves.length) break;
+    s = as(s, me.id, 'Bid', moves[0]);
+  }
+  assert.equal(s.phase, 'settlement');
+  assert.equal(s.players[0].discs.find(d => d.bonus).used, false, 'неиспользованная двойка просто остаётся лежать');
+  assert.equal(s.lots.flatMap(l => l.bids).some(b => b.bonus), false);
 });
 
 /* ---------- Тимур ---------- */
