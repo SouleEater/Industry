@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#233e37"><title>Индустрия — каталог карт</title>
+  <link rel="icon" href="/apps/web/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/apps/web/style.css"><link rel="stylesheet" href="/apps/web/catalog.css">
+</head>
+<body>
+  <header class="masthead"><a class="brand" href="/" aria-label="Вернуться к игровому столу"><span class="brand-mark">И</span><span>ИНДУСТРИЯ<small>АРХИВ КОМПОНЕНТОВ</small></span></a><a href="/">К игровому столу</a></header>
+  <main>
+    <span class="eyebrow">МАТЕРИАЛЫ ПОЛЬЗОВАТЕЛЯ / БАЗОВАЯ ИГРА</span>
+    <h1>Каталог карт</h1>
+    <p class="catalog-intro">31 предприятие, 5 стартовых карт и 5 персонажей. Здесь можно рассмотреть обе стороны и прочитать расшифровку. Это пользовательские макеты: до сверки полного набора они не участвуют в учебной партии.</p>
+    <details class="catalog-warning"><summary>Что ещё нужно сверить</summary><p>До 36 предприятий базового набора не хватает 5 пар. В PDF и PowerPoint есть различия рецептов и имён, на двух картах не указана кратность обмена. Подробности отмечены у соответствующих карт. Серые эффекты обычной стороны включены в описание улучшенной стороны. Названия предприятий технические.</p></details>
+    <div class="catalog-tools"><label>Раздел<select id="group"><option value="all">Все карты</option><option value="oil">Нефтяные предприятия</option><option value="metal">Металлургические предприятия</option><option value="mine">Шахты</option><option value="startup">Стартовые предприятия</option><option value="capitalist">Персонажи</option></select></label><label>Поиск<input id="search" type="search" placeholder="Имя, номер или ID карты"></label></div>
+    <p id="count" role="status" aria-live="polite"></p><div id="catalog" class="catalog-grid"></div>
+  </main>
+  <dialog id="card-preview"><button id="close-preview" class="outline">Закрыть</button><p id="preview-title"></p><img id="preview-image" alt=""></dialog>
+  <script type="module" src="/apps/web/catalog.mjs"></script>
+</body>
+</html>

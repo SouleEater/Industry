@@ -1,0 +1,2 @@
+research/archives/*.zip.part[0-9][0-9][0-9] -text
+research/archives/*.json text eol=lf

@@ -1,0 +1,27 @@
+{
+  "archive": "base-industry.zip",
+  "bytes": 173951728,
+  "sha256": "874cabe62cad632a38380e976dd2cd1dd8fab03efdc04f866a1cbc2d96e1b6ca",
+  "parts": [
+    {
+      "file": "base-industry.zip.part001",
+      "bytes": 45000000,
+      "sha256": "a9b5f811b5e22dc59087f1bc46ac792eb2c168f3f49983351816777c8645576a"
+    },
+    {
+      "file": "base-industry.zip.part002",
+      "bytes": 45000000,
+      "sha256": "585c4319f7876c569366d52308fda1d7808018b56c801da99e4fb5c55a9396ca"
+    },
+    {
+      "file": "base-industry.zip.part003",
+      "bytes": 45000000,
+      "sha256": "e153d6d9aec59efd04f3111f5bf3dd91f3b3fb70ab06ef7e6d744e7e6d29816c"
+    },
+    {
+      "file": "base-industry.zip.part004",
+      "bytes": 38951728,
+      "sha256": "8437043660ab56df4a963cf123e7b50ec620123f341d6affcabc563a87c7a2ca"
+    }
+  ]
+}

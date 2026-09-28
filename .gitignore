@@ -1,0 +1,13 @@
+node_modules/
+__pycache__/
+dist/
+tmp/
+research/archives/base-industry.zip
+research/archives/*.assembling
+research/imported/
+research/rendered/
+research/sources/*.pdf
+research/sources/*.html
+research/sources/*.txt
+research/scans/incoming/*
+!research/scans/incoming/.gitkeep

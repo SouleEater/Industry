@@ -1,0 +1,743 @@
+[
+  {
+    "entry": 8,
+    "page": 1,
+    "text": "х2\r\n6"
+  },
+  {
+    "entry": 8,
+    "page": 2,
+    "text": "х2\r\n6"
+  },
+  {
+    "entry": 8,
+    "page": 3,
+    "text": "х3 4\r\nх1"
+  },
+  {
+    "entry": 8,
+    "page": 4,
+    "text": "х1\r\nх3 4"
+  },
+  {
+    "entry": 8,
+    "page": 5,
+    "text": "х1\r\nх3 4"
+  },
+  {
+    "entry": 8,
+    "page": 6,
+    "text": "х1\r\nх3 4"
+  },
+  {
+    "entry": 8,
+    "page": 7,
+    "text": "х2\r\n6"
+  },
+  {
+    "entry": 8,
+    "page": 8,
+    "text": "х2\r\n6"
+  },
+  {
+    "entry": 8,
+    "page": 9,
+    "text": "х2\r\n7"
+  },
+  {
+    "entry": 8,
+    "page": 10,
+    "text": "х2\r\n7"
+  },
+  {
+    "entry": 8,
+    "page": 11,
+    "text": "х3 4\r\nх2"
+  },
+  {
+    "entry": 8,
+    "page": 12,
+    "text": "х3 4\r\nх2"
+  },
+  {
+    "entry": 8,
+    "page": 13,
+    "text": "х2\r\n7\r\nх1"
+  },
+  {
+    "entry": 8,
+    "page": 14,
+    "text": "х2\r\n7\r\nх1"
+  },
+  {
+    "entry": 8,
+    "page": 15,
+    "text": "3\r\nх2\r\nх3 4"
+  },
+  {
+    "entry": 8,
+    "page": 16,
+    "text": "3\r\nх2\r\nх3 4"
+  },
+  {
+    "entry": 9,
+    "slide": "ppt/slides/slide1.xml",
+    "text": [
+      "х",
+      "2",
+      "6"
+    ]
+  },
+  {
+    "entry": 9,
+    "slide": "ppt/slides/slide2.xml",
+    "text": [
+      "х",
+      "2",
+      "6"
+    ]
+  },
+  {
+    "entry": 9,
+    "slide": "ppt/slides/slide3.xml",
+    "text": [
+      "х",
+      "2",
+      "х",
+      "3",
+      "4"
+    ]
+  },
+  {
+    "entry": 9,
+    "slide": "ppt/slides/slide4.xml",
+    "text": [
+      "х",
+      "2",
+      "х",
+      "3",
+      "4"
+    ]
+  },
+  {
+    "entry": 9,
+    "slide": "ppt/slides/slide5.xml",
+    "text": [
+      "х",
+      "1",
+      "х",
+      "3",
+      "4"
+    ]
+  },
+  {
+    "entry": 9,
+    "slide": "ppt/slides/slide6.xml",
+    "text": [
+      "х",
+      "1",
+      "х",
+      "3",
+      "4"
+    ]
+  },
+  {
+    "entry": 9,
+    "slide": "ppt/slides/slide7.xml",
+    "text": [
+      "х",
+      "3",
+      "4"
+    ]
+  },
+  {
+    "entry": 9,
+    "slide": "ppt/slides/slide8.xml",
+    "text": [
+      "х",
+      "3",
+      "4"
+    ]
+  },
+  {
+    "entry": 9,
+    "slide": "ppt/slides/slide9.xml",
+    "text": [
+      "х",
+      "2",
+      "6"
+    ]
+  },
+  {
+    "entry": 9,
+    "slide": "ppt/slides/slide10.xml",
+    "text": [
+      "х",
+      "2",
+      "6"
+    ]
+  },
+  {
+    "entry": 9,
+    "slide": "ppt/slides/slide11.xml",
+    "text": [
+      "х",
+      "2",
+      "7"
+    ]
+  },
+  {
+    "entry": 9,
+    "slide": "ppt/slides/slide12.xml",
+    "text": [
+      "х",
+      "2",
+      "7"
+    ]
+  },
+  {
+    "entry": 9,
+    "slide": "ppt/slides/slide13.xml",
+    "text": [
+      "х2",
+      "х",
+      "3",
+      "4"
+    ]
+  },
+  {
+    "entry": 9,
+    "slide": "ppt/slides/slide14.xml",
+    "text": [
+      "х2",
+      "х",
+      "3",
+      "4"
+    ]
+  },
+  {
+    "entry": 9,
+    "slide": "ppt/slides/slide15.xml",
+    "text": [
+      "х",
+      "2",
+      "7",
+      "х1"
+    ]
+  },
+  {
+    "entry": 9,
+    "slide": "ppt/slides/slide16.xml",
+    "text": [
+      "х",
+      "2",
+      "7",
+      "х1"
+    ]
+  },
+  {
+    "entry": 9,
+    "slide": "ppt/slides/slide17.xml",
+    "text": [
+      "х",
+      "2",
+      "х",
+      "3",
+      "4",
+      "3"
+    ]
+  },
+  {
+    "entry": 9,
+    "slide": "ppt/slides/slide18.xml",
+    "text": [
+      "х",
+      "2",
+      "х",
+      "3",
+      "4",
+      "3"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide1.xml",
+    "text": [
+      "2",
+      "х4"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide2.xml",
+    "text": [
+      "2",
+      "х4"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide3.xml",
+    "text": [
+      "х",
+      "1",
+      "5"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide4.xml",
+    "text": [
+      "х",
+      "1",
+      "5"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide5.xml",
+    "text": [
+      "х",
+      "1",
+      "4"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide6.xml",
+    "text": [
+      "х",
+      "1",
+      "4"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide7.xml",
+    "text": [
+      "х",
+      "1",
+      "4"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide8.xml",
+    "text": [
+      "х",
+      "1",
+      "4"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide9.xml",
+    "text": [
+      "х",
+      "2",
+      "5"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide10.xml",
+    "text": [
+      "х",
+      "2",
+      "5"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide11.xml",
+    "text": [
+      "х",
+      "1",
+      "4"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide12.xml",
+    "text": [
+      "х",
+      "1",
+      "4"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide13.xml",
+    "text": [
+      "х",
+      "2",
+      "5"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide14.xml",
+    "text": [
+      "х",
+      "2",
+      "5"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide15.xml",
+    "text": [
+      "х",
+      "1",
+      "5"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide16.xml",
+    "text": [
+      "х",
+      "1",
+      "5"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide17.xml",
+    "text": [
+      "х",
+      "2",
+      "4"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide18.xml",
+    "text": [
+      "х",
+      "2",
+      "4"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide19.xml",
+    "text": [
+      "х",
+      "2",
+      "4"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide20.xml",
+    "text": [
+      "х",
+      "2",
+      "4"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide21.xml",
+    "text": [
+      "х",
+      "2",
+      "4"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide22.xml",
+    "text": [
+      "х",
+      "2",
+      "4"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide23.xml",
+    "text": [
+      "х",
+      "1",
+      "4"
+    ]
+  },
+  {
+    "entry": 24,
+    "slide": "ppt/slides/slide24.xml",
+    "text": [
+      "х",
+      "1",
+      "4"
+    ]
+  },
+  {
+    "entry": 115,
+    "page": 1,
+    "text": "ПОЛЬ\r\nВ каждой фазе производства вы \r\nможете один раз потратить , \r\nчтобы повторно использовать свою \r\nкарту"
+  },
+  {
+    "entry": 115,
+    "page": 2,
+    "text": "ГЕНРИ\r\nКогда вы получаете компенсацию, \r\nсчитается, что значение вашего \r\nдиска на 1 больше"
+  },
+  {
+    "entry": 115,
+    "page": 3,
+    "text": "МОНИКА\r\nВ фазе аукциона вы можете \r\nвыставлять диски без ограничений \r\nпо значению и владельцу (значения \r\nдисков не суммируются). \r\nПри равенстве значений получите \r\nкомпенсацию"
+  },
+  {
+    "entry": 115,
+    "page": 4,
+    "text": "АРТУР\r\nУ вас есть дополнительный\r\nОн считается диском вашего\r\nцвета. В фазе аукциона вы должны \r\nего одновременно выложить с \r\nдругой вашей ставкой (на другую \r\nкарту).\r\n2"
+  },
+  {
+    "entry": 115,
+    "page": 5,
+    "text": "ТИМУР\r\nПри модернизации вы можете \r\nтратить вместо , но сперва \r\nдолжны потратить все свои"
+  },
+  {
+    "entry": 116,
+    "slide": "ppt/slides/slide1.xml",
+    "text": [
+      "ЭВАРИСТ",
+      "В каждой фазе производства вы можете один раз потратить           , чтобы повторно использовать свою карту"
+    ]
+  },
+  {
+    "entry": 116,
+    "slide": "ppt/slides/slide2.xml",
+    "text": [
+      "ГЕНРИ",
+      "Когда вы получаете компенсацию, считается, что значение вашего диска на 1 больше"
+    ]
+  },
+  {
+    "entry": 116,
+    "slide": "ppt/slides/slide3.xml",
+    "text": [
+      "МОНИКА",
+      "В фазе аукциона вы можете выставлять диски без ограничений по значению и владельцу (значения дисков не суммируются). ",
+      "При равенстве значений получите компенсацию"
+    ]
+  },
+  {
+    "entry": 116,
+    "slide": "ppt/slides/slide4.xml",
+    "text": [
+      "АРТУР",
+      "У вас есть дополнительный",
+      "Он считается диском вашего цвета. В фазе аукциона вы должны его одновременно выложить с другой вашей ставкой (на другую карту).",
+      "2"
+    ]
+  },
+  {
+    "entry": 116,
+    "slide": "ppt/slides/slide5.xml",
+    "text": [
+      "ТИМУР",
+      "При модернизации вы можете тратить       вместо        , но сперва должны потратить все свои"
+    ]
+  },
+  {
+    "entry": 117,
+    "slide": "ppt/slides/slide1.xml",
+    "text": [
+      "2",
+      "х2"
+    ]
+  },
+  {
+    "entry": 117,
+    "slide": "ppt/slides/slide2.xml",
+    "text": [
+      "х",
+      "1",
+      "4"
+    ]
+  },
+  {
+    "entry": 117,
+    "slide": "ppt/slides/slide3.xml",
+    "text": [
+      "х",
+      "1",
+      "4"
+    ]
+  },
+  {
+    "entry": 117,
+    "slide": "ppt/slides/slide4.xml",
+    "text": [
+      "2",
+      "х",
+      "2"
+    ]
+  },
+  {
+    "entry": 117,
+    "slide": "ppt/slides/slide5.xml",
+    "text": [
+      "х",
+      "1",
+      "4"
+    ]
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide1.xml",
+    "text": [
+      "x2",
+      "x2",
+      "2"
+    ]
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide2.xml",
+    "text": [
+      "2",
+      "х2"
+    ]
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide3.xml",
+    "text": [
+      "2",
+      "х2"
+    ]
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide4.xml",
+    "text": []
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide5.xml",
+    "text": []
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide6.xml",
+    "text": []
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide7.xml",
+    "text": []
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide8.xml",
+    "text": []
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide9.xml",
+    "text": []
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide10.xml",
+    "text": [
+      "2",
+      "х4"
+    ]
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide11.xml",
+    "text": [
+      "2",
+      "х4"
+    ]
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide12.xml",
+    "text": [
+      "2",
+      "х2"
+    ]
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide13.xml",
+    "text": [
+      "2",
+      "х2"
+    ]
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide14.xml",
+    "text": [
+      "2",
+      "х4"
+    ]
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide15.xml",
+    "text": [
+      "2",
+      "х4"
+    ]
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide16.xml",
+    "text": [
+      "2",
+      "х4"
+    ]
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide17.xml",
+    "text": [
+      "2",
+      "х4"
+    ]
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide18.xml",
+    "text": [
+      "2",
+      "х",
+      "2"
+    ]
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide19.xml",
+    "text": [
+      "2",
+      "х",
+      "2"
+    ]
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide20.xml",
+    "text": [
+      "2",
+      "х",
+      "2"
+    ]
+  },
+  {
+    "entry": 128,
+    "slide": "ppt/slides/slide21.xml",
+    "text": [
+      "2",
+      "х",
+      "2"
+    ]
+  }
+]

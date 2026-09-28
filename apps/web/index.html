@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#233e37">
+  <meta name="description" content="Учебный прототип веб-версии экономической настольной игры Индустрия.">
+  <title>Индустрия — учебный стол</title>
+  <link rel="icon" href="/apps/web/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/apps/web/style.css">
+  <link rel="stylesheet" href="/apps/web/planning.css">
+</head>
+<body>
+  <header class="masthead"><a class="brand" href="/" aria-label="Индустрия, игровой стол"><span class="brand-mark">И</span><span>ИНДУСТРИЯ<small>ЦИФРОВАЯ МАСТЕРСКАЯ</small></span></a><div class="header-actions"><span class="edition">Этап 01 / Учебный стол</span><button id="new-game" class="outline">Новая партия</button></div></header>
+  <div class="prototype-note"><span class="status-dot"></span><span>Прототип на учебных картах. <a href="/apps/web/catalog.html">Каталог полученных карт</a> доступен отдельно. Полная колода и «Интербеллум» ещё в разработке.</span></div>
+  <main id="app"></main>
+  <div id="notice" role="status" aria-live="polite"></div>
+  <dialog id="setup"><form id="setup-form"><span class="eyebrow">ЛОКАЛЬНАЯ ИГРА</span><h2>Соберите свой стол</h2><p>Игроки ходят по очереди на одном устройстве. Начало новой партии заменит текущее локальное сохранение.</p><label>Количество игроков<select id="player-count"><option value="3">3 игрока</option><option value="4">4 игрока</option></select></label><label class="checkbox"><input id="variable" type="checkbox">Переменный капитал</label><p class="muted">Отдельный модуль: уголь увеличивает ставку. Без управляющих на аукцион добавляется одно предприятие.</p><label>Порядок производства<select id="production-mode"><option value="free">Свободный порядок</option><option value="chain">Цепочка: старый порядок сохраняется</option></select></label>
+<p class="muted">После аукциона каждый игрок планирует линию. В «Цепочке» новые карты вставляются между старыми, а производство идёт слева направо.</p>
+<label>Таймер решения<select id="timer-mode"><option value="off">Без таймера</option><option value="on">С таймером</option></select></label>
+<label>Время в секундах<input id="turn-seconds" type="number" min="1" max="3600" step="1" value="60" required disabled></label>
+<p class="muted">Дополнительная настройка, не обязательное правило игры. Время даётся на ставку, выбор компенсации, весь план или всё производство одного игрока. По истечении — уведомление без штрафа. Перезагрузка не обнуляет отсчёт.</p>
+<p id="setup-error" role="alert"></p>
+<div class="dialog-actions"><button type="button" id="cancel-setup" class="outline">Отмена</button><button type="submit" class="primary">Начать партию</button></div></form></dialog>
+  <script type="module" src="/apps/web/app.mjs"></script>
+</body>
+</html>

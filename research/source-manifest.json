@@ -1,0 +1,28 @@
+{
+  "sources": [
+    {
+      "id": "base",
+      "url": "https://hobbygames.ru/download/rules/industry_rules.pdf",
+      "version": "1.1",
+      "retrievedAt": "2026-09-25",
+      "sha256": "1d58b70a4fee4ffd1a070209d92eb02995a0d563875d1ebdec352ce32b0aec6e",
+      "localPath": "research/sources/base.pdf"
+    },
+    {
+      "id": "faq",
+      "url": "https://hobbygames.ru/download/rules/industry_faq.pdf",
+      "version": null,
+      "retrievedAt": "2026-09-25",
+      "sha256": "5c36ba03d06cfdd3604acdfc81bb83442903abefcf3544f3c3a3ae1911ea8aea",
+      "localPath": "research/sources/faq.pdf"
+    },
+    {
+      "id": "interbellum",
+      "url": "https://hobbygames.ru/download/rules/industry-interbellum-rules.pdf",
+      "version": "1.0",
+      "retrievedAt": "2026-09-25",
+      "sha256": "3007a68d50b792664b4485ab05e387ae0ce6f81b36787cc5f619687fd2a9cea4",
+      "localPath": "research/sources/interbellum.pdf"
+    }
+  ]
+}

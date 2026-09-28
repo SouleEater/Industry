@@ -1,0 +1,1397 @@
+{
+  "archive": "research/archives/base-industry.zip",
+  "archiveSha256": "874cabe62cad632a38380e976dd2cd1dd8fab03efdc04f866a1cbc2d96e1b6ca",
+  "records": [
+    {
+      "entry": 0,
+      "originalPath": "индустрия/Мажикские заводы/Дизайн без названия (10).png",
+      "path": "research/imported/base/000.png",
+      "bytes": 390507,
+      "sha256": "95687880f1bba280b52edf80001ef74dd6a573a56168278dd837c21cc2178487",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 1,
+      "originalPath": "индустрия/Мажикские заводы/Дизайн без названия (2).png",
+      "path": "research/imported/base/001.png",
+      "bytes": 351973,
+      "sha256": "11164442876e453d02ae482095a20a24939c94e44cd82a83de1f189ea2657a74",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 2,
+      "originalPath": "индустрия/Мажикские заводы/Дизайн без названия (3).png",
+      "path": "research/imported/base/002.png",
+      "bytes": 409954,
+      "sha256": "011389567784a57413e39540c943023629e745c99a8fef495f064954e42bddee",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 3,
+      "originalPath": "индустрия/Мажикские заводы/Дизайн без названия (4).png",
+      "path": "research/imported/base/003.png",
+      "bytes": 427117,
+      "sha256": "8f31ef08f09f8c084d587bebbe1d101fba9640bb3de7890d4f7272cb8777233f",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 4,
+      "originalPath": "индустрия/Мажикские заводы/Дизайн без названия (6).png",
+      "path": "research/imported/base/004.png",
+      "bytes": 459638,
+      "sha256": "0af018ca5cc3d4bc3a92abbe8d401160fd38babebc3f8984f897dbec8a4cb9de",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 5,
+      "originalPath": "индустрия/Мажикские заводы/Дизайн без названия (7).png",
+      "path": "research/imported/base/005.png",
+      "bytes": 366910,
+      "sha256": "0811b5d26408bb33660854444a0aa9417bb585ef2d9296459615dd7e8da7b152",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 6,
+      "originalPath": "индустрия/Мажикские заводы/Дизайн без названия (8).png",
+      "path": "research/imported/base/006.png",
+      "bytes": 370779,
+      "sha256": "4a6d3d28d32020547429df811d93b953c9eaedf5efd6b530b02aee44e27cda91",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 7,
+      "originalPath": "индустрия/Мажикские заводы/Дизайн без названия (9).png",
+      "path": "research/imported/base/007.png",
+      "bytes": 401909,
+      "sha256": "ca9783a92a030016e5abd3664b92c2d9afa173edb755ca9fb6eb224fce709c13",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 8,
+      "originalPath": "индустрия/Мажикские заводы/Мажикские заводы.pdf",
+      "path": "research/imported/base/008.pdf",
+      "bytes": 452742,
+      "sha256": "f46619f580a2b8fff1d91887c9a27fa546c0fcd281b2386cbb1facaf8927c46a"
+    },
+    {
+      "entry": 9,
+      "originalPath": "индустрия/Мажикские заводы/Мажикские заводы.pptx",
+      "path": "research/imported/base/009.pptx",
+      "bytes": 24724395,
+      "sha256": "9216c6a742fadc210f33b2ef7790978067ad558efe96d57d0276d0cbf45c4e2e"
+    },
+    {
+      "entry": 10,
+      "originalPath": "индустрия/Переработка железа/222.png",
+      "path": "research/imported/base/010.png",
+      "bytes": 417861,
+      "sha256": "96a55fde858e484a9364a0bfb1cc5f402834e34c7195af8f5a0f56756416f285",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 11,
+      "originalPath": "индустрия/Переработка железа/33.png",
+      "path": "research/imported/base/011.png",
+      "bytes": 419216,
+      "sha256": "780c35c708afafa6e8d3f56d77f5b78f6ab7dd330ad969e23a45b7e437d5d9ad",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 12,
+      "originalPath": "индустрия/Переработка железа/Дизайн без названия (10).png",
+      "path": "research/imported/base/012.png",
+      "bytes": 410837,
+      "sha256": "5dac6a7130c6b818e47775818f63a3e416e67e2beda14b77dbddb4d167b9000d",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 13,
+      "originalPath": "индустрия/Переработка железа/Дизайн без названия (11).png",
+      "path": "research/imported/base/013.png",
+      "bytes": 445785,
+      "sha256": "36b313e6e66a120d4b2efec96dbc04318025e0ca3e74546ec2f8373288e7a517",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 14,
+      "originalPath": "индустрия/Переработка железа/Дизайн без названия (12).png",
+      "path": "research/imported/base/014.png",
+      "bytes": 430778,
+      "sha256": "e1a88918923983758825b670c8d6b5ce0706d4e77412015e8f89c5b36d58efd3",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 15,
+      "originalPath": "индустрия/Переработка железа/Дизайн без названия (13).png",
+      "path": "research/imported/base/015.png",
+      "bytes": 447802,
+      "sha256": "8c77482df41434a03710babd9d3442ec22f95a112d8e23481fd2d5b3ad1e76a5",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 16,
+      "originalPath": "индустрия/Переработка железа/Дизайн без названия (2).png",
+      "path": "research/imported/base/016.png",
+      "bytes": 426720,
+      "sha256": "f931a7603afb3c8396303b2397d53c330fbe34d5b79a83b07a58481efdfb4421",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 17,
+      "originalPath": "индустрия/Переработка железа/Дизайн без названия (3).png",
+      "path": "research/imported/base/017.png",
+      "bytes": 432172,
+      "sha256": "4b9b5fe1103b4c18713aca59df09401086311936c5e20b81d8c877fc482365a6",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 18,
+      "originalPath": "индустрия/Переработка железа/Дизайн без названия (4).png",
+      "path": "research/imported/base/018.png",
+      "bytes": 427098,
+      "sha256": "e76af64e8af27b0673cecaa70b288affbae28b28da81f6d33ba1ec6d9feeda60",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 19,
+      "originalPath": "индустрия/Переработка железа/Дизайн без названия (5).png",
+      "path": "research/imported/base/019.png",
+      "bytes": 425954,
+      "sha256": "4a06ae877020cf9bfd4416871d2b856b8cc183cf0e08c56572e9f5f37ded4487",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 20,
+      "originalPath": "индустрия/Переработка железа/Дизайн без названия (6).png",
+      "path": "research/imported/base/020.png",
+      "bytes": 430343,
+      "sha256": "c7a131a2d3b0d017d62ab34d47a43669d143331528a6395d80ef65342fdf25d6",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 21,
+      "originalPath": "индустрия/Переработка железа/Дизайн без названия (7).png",
+      "path": "research/imported/base/021.png",
+      "bytes": 462324,
+      "sha256": "62d1ac10f4356c2bcb4ed5068eaefbe53ee7ea994e37df2439c83f29cd1648a0",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 22,
+      "originalPath": "индустрия/Переработка железа/Дизайн без названия (8).png",
+      "path": "research/imported/base/022.png",
+      "bytes": 451568,
+      "sha256": "04cf6e32196a48624d2840740bbefef2e8bf94260287956e2ec138aee07a9fb7",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 23,
+      "originalPath": "индустрия/Переработка железа/Дизайн без названия (9).png",
+      "path": "research/imported/base/023.png",
+      "bytes": 429348,
+      "sha256": "8ad4190fbf95311793886031eb49eb34126200d22a545ef838a821d388b40a61",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 24,
+      "originalPath": "индустрия/Переработка железа/переработка железа.pptx",
+      "path": "research/imported/base/024.pptx",
+      "bytes": 26731614,
+      "sha256": "add29f34aaced260a3c2d5b6dbca9c6781cbedc80c828c062ca278808295b6c1"
+    },
+    {
+      "entry": 25,
+      "originalPath": "индустрия/Персонажи/0db6b7b8-9c8f-424f-a80f-de1398342e09-removebg-preview.png",
+      "path": "research/imported/base/025.png",
+      "bytes": 243644,
+      "sha256": "f583dfd2f43e0cac6270a5f593f7fd86d1613d4ca573401d1bfe87cbbd38e979",
+      "size": [
+        444,
+        562
+      ]
+    },
+    {
+      "entry": 26,
+      "originalPath": "индустрия/Персонажи/0db6b7b8-9c8f-424f-a80f-de1398342e09.jpg",
+      "path": "research/imported/base/026.jpg",
+      "bytes": 607329,
+      "sha256": "0083cd177b5054ecd60c269e85cbbffc969dac3a835e7c05925b93b306651b76",
+      "size": [
+        808,
+        1024
+      ]
+    },
+    {
+      "entry": 27,
+      "originalPath": "индустрия/Персонажи/120ebe5c-4122-44b7-9b54-47021fe3367f-removebg-preview.png",
+      "path": "research/imported/base/027.png",
+      "bytes": 254207,
+      "sha256": "f79034b7b8f5d9bf31734159526256318c8372180f554eb6e38bbc102154fee6",
+      "size": [
+        463,
+        539
+      ]
+    },
+    {
+      "entry": 28,
+      "originalPath": "индустрия/Персонажи/120ebe5c-4122-44b7-9b54-47021fe3367f.jpg",
+      "path": "research/imported/base/028.jpg",
+      "bytes": 716070,
+      "sha256": "4af66edd5527c495356a81cdbe76fdc7b81deb7b278da7f589f4646d48959ddc",
+      "size": [
+        880,
+        1024
+      ]
+    },
+    {
+      "entry": 29,
+      "originalPath": "индустрия/Персонажи/15a612b8-5f7e-489d-819a-b027e8effeda.jpg",
+      "path": "research/imported/base/029.jpg",
+      "bytes": 600936,
+      "sha256": "b08603cabe698e5f0adf58192840bc3895f8d75d80ddb2d3a43907072f3fc06a",
+      "size": [
+        745,
+        1024
+      ]
+    },
+    {
+      "entry": 30,
+      "originalPath": "индустрия/Персонажи/1866843a05019cd68f48f4fde5232f8c-sticker 1.png",
+      "path": "research/imported/base/030.png",
+      "bytes": 54759,
+      "sha256": "70653e68563e20bd0a07769378b845dae7120bdeb8c738003223247d91cc255a",
+      "size": [
+        421,
+        421
+      ]
+    },
+    {
+      "entry": 31,
+      "originalPath": "индустрия/Персонажи/2-4d800f23.png",
+      "path": "research/imported/base/031.png",
+      "bytes": 72084,
+      "sha256": "4d800f2389ad21d7919f46268add9ff753e8a573c7cfb1a145ee3f37d5f02095",
+      "size": [
+        768,
+        768
+      ]
+    },
+    {
+      "entry": 32,
+      "originalPath": "индустрия/Персонажи/2-b045ea53.png",
+      "path": "research/imported/base/032.png",
+      "bytes": 17400,
+      "sha256": "b045ea53bb7173b7679c5cc5b9c073a1735c264a7b198d907dc400f5cef73ac6",
+      "size": [
+        1000,
+        750
+      ]
+    },
+    {
+      "entry": 33,
+      "originalPath": "индустрия/Персонажи/2a7ac2f0-e405-4674-8ea8-3e6d4e645d5e-removebg-preview.png",
+      "path": "research/imported/base/033.png",
+      "bytes": 398363,
+      "sha256": "2ffdc57aa16f1f489b6edc6a133675d2e6d228491d899340e096058d0a02abfd",
+      "size": [
+        431,
+        579
+      ]
+    },
+    {
+      "entry": 34,
+      "originalPath": "индустрия/Персонажи/2a7ac2f0-e405-4674-8ea8-3e6d4e645d5e.jpg",
+      "path": "research/imported/base/034.jpg",
+      "bytes": 755364,
+      "sha256": "f1007ca5210133a8d2073bf52da464a492e9d839a424307d1eb479c0373dc74a",
+      "size": [
+        763,
+        1024
+      ]
+    },
+    {
+      "entry": 35,
+      "originalPath": "индустрия/Персонажи/2dda4432-1913-427e-ad49-0e81776126da-removebg-preview.png",
+      "path": "research/imported/base/035.png",
+      "bytes": 344601,
+      "sha256": "df5689999aad0955bedaf60058dc28d17e5e5b2f84f3eaaa7a8cb85f0cd7d7b6",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 36,
+      "originalPath": "индустрия/Персонажи/2dda4432-1913-427e-ad49-0e81776126da.jpg",
+      "path": "research/imported/base/036.jpg",
+      "bytes": 923214,
+      "sha256": "a762010bed433ce687e4d38c912bc19d3a522f80643e00648647d993961a9ffc",
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "entry": 37,
+      "originalPath": "индустрия/Персонажи/3-26f0bd3f.png",
+      "path": "research/imported/base/037.png",
+      "bytes": 13753,
+      "sha256": "26f0bd3f48a8a96d4d99bf0faae5b062f74fa39372e4b4a937a6ba61fdbc2363",
+      "size": [
+        600,
+        450
+      ]
+    },
+    {
+      "entry": 38,
+      "originalPath": "индустрия/Персонажи/327fa7a2-dd4e-4d63-8319-d96237216c92-removebg-preview.png",
+      "path": "research/imported/base/038.png",
+      "bytes": 260935,
+      "sha256": "d10a314833789e49e6b79826af82aff0e8af716f024bdeb06018d6e1ed8b6f03",
+      "size": [
+        426,
+        586
+      ]
+    },
+    {
+      "entry": 39,
+      "originalPath": "индустрия/Персонажи/327fa7a2-dd4e-4d63-8319-d96237216c92.jpg",
+      "path": "research/imported/base/039.jpg",
+      "bytes": 589732,
+      "sha256": "104152856e78abe62fc5e0eae2a50c7ac78925b4b8bdbf43cd36d4233e72cc46",
+      "size": [
+        745,
+        1024
+      ]
+    },
+    {
+      "entry": 40,
+      "originalPath": "индустрия/Персонажи/3660dd9a459ea02296485daae61af45e-sticker 1.png",
+      "path": "research/imported/base/040.png",
+      "bytes": 68120,
+      "sha256": "a58571ed6f0484fe6eaf0aec4dbca6d22d1732d13042bd1e87ea731111656751",
+      "size": [
+        421,
+        427
+      ]
+    },
+    {
+      "entry": 41,
+      "originalPath": "индустрия/Персонажи/4-8e8514db.png",
+      "path": "research/imported/base/041.png",
+      "bytes": 48759,
+      "sha256": "8e8514dbb259cb7507163dba62d2a24f5b0ae5041b915cb7c57affe42b91a7fe",
+      "size": [
+        768,
+        768
+      ]
+    },
+    {
+      "entry": 42,
+      "originalPath": "индустрия/Персонажи/44941472fee5ec9374c6d3944b877f23-sticker 1.png",
+      "path": "research/imported/base/042.png",
+      "bytes": 79976,
+      "sha256": "f0613f535b201c81a5b0d4e0474976399f9b41af875b01131f4412c5b7c5f29d",
+      "size": [
+        421,
+        421
+      ]
+    },
+    {
+      "entry": 43,
+      "originalPath": "индустрия/Персонажи/46ad90fa-40d5-404d-9170-83b97f2dcd34-removebg-preview.png",
+      "path": "research/imported/base/043.png",
+      "bytes": 263161,
+      "sha256": "a5d80269211566e7d68fbffe5012a6d4b22d0afc8913b2c43d5864d518e35518",
+      "size": [
+        431,
+        579
+      ]
+    },
+    {
+      "entry": 44,
+      "originalPath": "индустрия/Персонажи/46ad90fa-40d5-404d-9170-83b97f2dcd34.jpg",
+      "path": "research/imported/base/044.jpg",
+      "bytes": 556467,
+      "sha256": "e7bedb4caf0b0c9988734a26e41eff0a7a88ba26fe67152e7a6dd2a9f3901dfd",
+      "size": [
+        763,
+        1024
+      ]
+    },
+    {
+      "entry": 45,
+      "originalPath": "индустрия/Персонажи/48084f0f-8bd6-4a2d-a0ba-a0e29c784437-removebg-preview.png",
+      "path": "research/imported/base/045.png",
+      "bytes": 340854,
+      "sha256": "03d5c7100845046736dc4d72d922505f86c62df8fa7b161485b4910736e67482",
+      "size": [
+        431,
+        579
+      ]
+    },
+    {
+      "entry": 46,
+      "originalPath": "индустрия/Персонажи/48084f0f-8bd6-4a2d-a0ba-a0e29c784437.jpg",
+      "path": "research/imported/base/046.jpg",
+      "bytes": 680715,
+      "sha256": "06c2c1b789c576d48b6566607310112380e6b4a7d99e7e6212a6ac2cf5eea81f",
+      "size": [
+        763,
+        1024
+      ]
+    },
+    {
+      "entry": 47,
+      "originalPath": "индустрия/Персонажи/50809932-c037-4748-8032-089a76873ce0-removebg-preview.png",
+      "path": "research/imported/base/047.png",
+      "bytes": 202339,
+      "sha256": "7a681da777d6e8bbf5aa6ceb2686f9d50526365f06d336ed729ebc53f120583f",
+      "size": [
+        436,
+        572
+      ]
+    },
+    {
+      "entry": 48,
+      "originalPath": "индустрия/Персонажи/50809932-c037-4748-8032-089a76873ce0.jpg",
+      "path": "research/imported/base/048.jpg",
+      "bytes": 576103,
+      "sha256": "104d65f8bbfdcadddaa3ce0071cd47974359df8390711f3a81e3e8e189196c91",
+      "size": [
+        781,
+        1024
+      ]
+    },
+    {
+      "entry": 49,
+      "originalPath": "индустрия/Персонажи/528a5dd1-1a1a-47c9-9c47-1b2d77a32504-removebg-preview.png",
+      "path": "research/imported/base/049.png",
+      "bytes": 297901,
+      "sha256": "1cde455389f2cd7d3d4c15e491cefdfb326679a7be2e6a69bb909d68eff22899",
+      "size": [
+        444,
+        562
+      ]
+    },
+    {
+      "entry": 50,
+      "originalPath": "индустрия/Персонажи/528a5dd1-1a1a-47c9-9c47-1b2d77a32504.jpg",
+      "path": "research/imported/base/050.jpg",
+      "bytes": 722433,
+      "sha256": "86d3b5fc966b2931ee2f531c5d7019609ffb7c10ee570bb3825bd7a63e7e56ed",
+      "size": [
+        808,
+        1024
+      ]
+    },
+    {
+      "entry": 51,
+      "originalPath": "индустрия/Персонажи/541463a5-1b0e-4545-b1a1-53a4e8f6f81d-removebg-preview.png",
+      "path": "research/imported/base/051.png",
+      "bytes": 379995,
+      "sha256": "fc28c3698532a0005483c15ca584db84d2c7a1f21dd7889de248517c638ddc60",
+      "size": [
+        441,
+        566
+      ]
+    },
+    {
+      "entry": 52,
+      "originalPath": "индустрия/Персонажи/541463a5-1b0e-4545-b1a1-53a4e8f6f81d.jpg",
+      "path": "research/imported/base/052.jpg",
+      "bytes": 839156,
+      "sha256": "412bcef2391b9277e12cd448e806bc2628d18db70d2916fb53c97c35c73bd70d",
+      "size": [
+        799,
+        1024
+      ]
+    },
+    {
+      "entry": 53,
+      "originalPath": "индустрия/Персонажи/5431403960666808946.jpg",
+      "path": "research/imported/base/053.jpg",
+      "bytes": 176760,
+      "sha256": "6dbff6ca397a23182f0c629513b7363585522de8b83eaba681765b5f1e79df89",
+      "size": [
+        853,
+        1280
+      ]
+    },
+    {
+      "entry": 54,
+      "originalPath": "индустрия/Персонажи/557d120f-7694-4af0-a04f-90ffbd2bc7b3-removebg-preview.png",
+      "path": "research/imported/base/054.png",
+      "bytes": 293240,
+      "sha256": "a78eb29c2b8057c1022fc23567185bbe6a112536df7cb8a4e4ffc9fdb087ef60",
+      "size": [
+        410,
+        608
+      ]
+    },
+    {
+      "entry": 55,
+      "originalPath": "индустрия/Персонажи/557d120f-7694-4af0-a04f-90ffbd2bc7b3.jpg",
+      "path": "research/imported/base/055.jpg",
+      "bytes": 567935,
+      "sha256": "4c42e28c84b585db284da47db72161a4fc10c21721d49753adec67856db1bc92",
+      "size": [
+        691,
+        1024
+      ]
+    },
+    {
+      "entry": 56,
+      "originalPath": "индустрия/Персонажи/561a28fd-77a0-4dd2-86b2-ae18c3d74f72-removebg-preview.png",
+      "path": "research/imported/base/056.png",
+      "bytes": 232110,
+      "sha256": "c3d9401c8005a443e2e61fa6486312c6fe1043326e026c2c8d16982e67f76171",
+      "size": [
+        418,
+        597
+      ]
+    },
+    {
+      "entry": 57,
+      "originalPath": "индустрия/Персонажи/561a28fd-77a0-4dd2-86b2-ae18c3d74f72.jpg",
+      "path": "research/imported/base/057.jpg",
+      "bytes": 539881,
+      "sha256": "d1c0c78b2516cb2f6cef5e2842b51a0185c02d55f7d586dda513ef9196cb83dd",
+      "size": [
+        718,
+        1024
+      ]
+    },
+    {
+      "entry": 58,
+      "originalPath": "индустрия/Персонажи/5bfa19ec-4098-47cb-95bb-4b973f1f0a03-removebg-preview.png",
+      "path": "research/imported/base/058.png",
+      "bytes": 231065,
+      "sha256": "a36a0563b0aeeb73ab7d2755455eb0288dcbfc3ebe132fe938b3ee66ead36867",
+      "size": [
+        475,
+        526
+      ]
+    },
+    {
+      "entry": 59,
+      "originalPath": "индустрия/Персонажи/5bfa19ec-4098-47cb-95bb-4b973f1f0a03.jpg",
+      "path": "research/imported/base/059.jpg",
+      "bytes": 726297,
+      "sha256": "679f5605ecef87b0dc7797f25e4cb62a34fdfd69dcda967aa850ab00b1513d7c",
+      "size": [
+        925,
+        1024
+      ]
+    },
+    {
+      "entry": 60,
+      "originalPath": "индустрия/Персонажи/5d72a063992f9a519e7e68623da61ad1-sticker 1.png",
+      "path": "research/imported/base/060.png",
+      "bytes": 62405,
+      "sha256": "d5376158efe03e93593abe27882d662afe6428081ad5e6b0f081daacf6f89a5f",
+      "size": [
+        421,
+        421
+      ]
+    },
+    {
+      "entry": 61,
+      "originalPath": "индустрия/Персонажи/604ee09d-dee0-4800-a823-ee2b71fcc7b4-removebg-preview.png",
+      "path": "research/imported/base/061.png",
+      "bytes": 217422,
+      "sha256": "dd623d541e190b05844d4616da4991b21f6cd3e544c667550b5573213b873ccd",
+      "size": [
+        497,
+        502
+      ]
+    },
+    {
+      "entry": 62,
+      "originalPath": "индустрия/Персонажи/604ee09d-dee0-4800-a823-ee2b71fcc7b4.jpg",
+      "path": "research/imported/base/062.jpg",
+      "bytes": 745570,
+      "sha256": "7a3863c5366e207604b09af336a01be1be76a7945ca58ec9b797586c35881ea2",
+      "size": [
+        1015,
+        1024
+      ]
+    },
+    {
+      "entry": 63,
+      "originalPath": "индустрия/Персонажи/62878064-1e5c-4b30-92ac-1ece521a9c4a-removebg-preview.png",
+      "path": "research/imported/base/063.png",
+      "bytes": 272628,
+      "sha256": "5bea71e0395208f27e5d2d78e2a74d464e5d9ce3dae18ea747fe2a58d5421e16",
+      "size": [
+        421,
+        593
+      ]
+    },
+    {
+      "entry": 64,
+      "originalPath": "индустрия/Персонажи/62878064-1e5c-4b30-92ac-1ece521a9c4a.jpg",
+      "path": "research/imported/base/064.jpg",
+      "bytes": 615359,
+      "sha256": "35678d8e8c5f265b96cddee2dc72cffccd3fb8368bb1d025352a26f533f819ef",
+      "size": [
+        727,
+        1024
+      ]
+    },
+    {
+      "entry": 65,
+      "originalPath": "индустрия/Персонажи/6443c1212967804a36b96ceaecbde300-sticker 1.png",
+      "path": "research/imported/base/065.png",
+      "bytes": 85749,
+      "sha256": "0b18271d7492290a69b5ce61469d40285273397f27315c2f2011704bc8b21c1d",
+      "size": [
+        421,
+        426
+      ]
+    },
+    {
+      "entry": 66,
+      "originalPath": "индустрия/Персонажи/65879cecfb5f62fb589d4c62765c97a8-sticker 1.png",
+      "path": "research/imported/base/066.png",
+      "bytes": 59795,
+      "sha256": "fcb77f7643c86b0cb2dd35c5fc024d63a5e6d27692d3a81c7d6f6defb04aeffc",
+      "size": [
+        421,
+        421
+      ]
+    },
+    {
+      "entry": 67,
+      "originalPath": "индустрия/Персонажи/686d13b6-ebe2-4f7a-afc6-2c495e789ce1-removebg-preview (1).png",
+      "path": "research/imported/base/067.png",
+      "bytes": 234620,
+      "sha256": "a68bd907d73280b79c93bfd328108fdafb780eed8a81ad684f3cecf8807c2794",
+      "size": [
+        431,
+        579
+      ]
+    },
+    {
+      "entry": 68,
+      "originalPath": "индустрия/Персонажи/686d13b6-ebe2-4f7a-afc6-2c495e789ce1.jpg",
+      "path": "research/imported/base/068.jpg",
+      "bytes": 625011,
+      "sha256": "e5aeb249194b6f0d4786e58177254b09f48b6a703e4cfffe090da7fd060859cf",
+      "size": [
+        763,
+        1024
+      ]
+    },
+    {
+      "entry": 69,
+      "originalPath": "индустрия/Персонажи/69589fef-1b1b-4046-bcdb-3091bfd435a0-removebg-preview.png",
+      "path": "research/imported/base/069.png",
+      "bytes": 109884,
+      "sha256": "9d11325f1fca1c2000161535c47369b384e97a6a64344cc8ad055898060d22cd",
+      "size": [
+        629,
+        397
+      ]
+    },
+    {
+      "entry": 70,
+      "originalPath": "индустрия/Персонажи/6c103db9-38b5-413e-a27e-c9994bf4e84d-removebg-preview.png",
+      "path": "research/imported/base/070.png",
+      "bytes": 290144,
+      "sha256": "05101d17221189f583f6b9d74071afb5b543bbe882d92c32028e390bd3848842",
+      "size": [
+        429,
+        582
+      ]
+    },
+    {
+      "entry": 71,
+      "originalPath": "индустрия/Персонажи/6c103db9-38b5-413e-a27e-c9994bf4e84d.jpg",
+      "path": "research/imported/base/071.jpg",
+      "bytes": 617185,
+      "sha256": "513dcb18ce3ae2d3e48bb489f0c4b2d377831a9421e690a7f186043297fb064f",
+      "size": [
+        754,
+        1024
+      ]
+    },
+    {
+      "entry": 72,
+      "originalPath": "индустрия/Персонажи/7128a645-5069-4e3f-912e-942f1356e668-removebg-preview.png",
+      "path": "research/imported/base/072.png",
+      "bytes": 259200,
+      "sha256": "d9f77b184cb375cd61d80c403305348013d0a81c2f29fcbcf0d7fc870a39893e",
+      "size": [
+        426,
+        586
+      ]
+    },
+    {
+      "entry": 73,
+      "originalPath": "индустрия/Персонажи/7128a645-5069-4e3f-912e-942f1356e668.jpg",
+      "path": "research/imported/base/073.jpg",
+      "bytes": 610649,
+      "sha256": "8cc287ef513c9623d83925e3ada4a907430c21e2fa76c55e2f28e265e8496a08",
+      "size": [
+        745,
+        1024
+      ]
+    },
+    {
+      "entry": 74,
+      "originalPath": "индустрия/Персонажи/771612f9-b8fe-424a-80c5-c05933d7b7ce-removebg-preview.png",
+      "path": "research/imported/base/074.png",
+      "bytes": 156326,
+      "sha256": "baed4d61f76d654d85e40d50caecba4ed7c25b342ab5f29616e07d8634284ac3",
+      "size": [
+        539,
+        463
+      ]
+    },
+    {
+      "entry": 75,
+      "originalPath": "индустрия/Персонажи/771612f9-b8fe-424a-80c5-c05933d7b7ce.jpg",
+      "path": "research/imported/base/075.jpg",
+      "bytes": 587003,
+      "sha256": "c09cfd572e3a3b350d3949e381be8724e0cc764deb8ee882b24c97fa9e38e0bf",
+      "size": [
+        1024,
+        880
+      ]
+    },
+    {
+      "entry": 76,
+      "originalPath": "индустрия/Персонажи/79c00051-7ba0-4801-b1d7-f475ee435293-removebg-preview.png",
+      "path": "research/imported/base/076.png",
+      "bytes": 285653,
+      "sha256": "26c4ebde93aac587d8285fd6bd596f7293715191a7c020cfc1e9666305069881",
+      "size": [
+        506,
+        493
+      ]
+    },
+    {
+      "entry": 77,
+      "originalPath": "индустрия/Персонажи/79c00051-7ba0-4801-b1d7-f475ee435293.jpg",
+      "path": "research/imported/base/077.jpg",
+      "bytes": 943205,
+      "sha256": "368a07f1771eaa1cf4bbb532387cb54eebea780e75a40222fe20a44b3b04ddca",
+      "size": [
+        1024,
+        997
+      ]
+    },
+    {
+      "entry": 78,
+      "originalPath": "индустрия/Персонажи/82bb45c3-6e69-47bb-8f00-1b7df34e6753-removebg-preview (1).png",
+      "path": "research/imported/base/078.png",
+      "bytes": 373742,
+      "sha256": "38a2550cd63f0ce32fe712276134d1bb2b191854c24f533f04589b7f762ba80d",
+      "size": [
+        472,
+        528
+      ]
+    },
+    {
+      "entry": 79,
+      "originalPath": "индустрия/Персонажи/82bb45c3-6e69-47bb-8f00-1b7df34e6753.jpg",
+      "path": "research/imported/base/079.jpg",
+      "bytes": 906437,
+      "sha256": "293c44aa856e05a5ae33878ca3078f2803880baf403378523d09eeacd71922d3",
+      "size": [
+        916,
+        1024
+      ]
+    },
+    {
+      "entry": 80,
+      "originalPath": "индустрия/Персонажи/9066b5ee-a827-4d30-9e5e-ee6626c566e5-removebg-preview.png",
+      "path": "research/imported/base/080.png",
+      "bytes": 310253,
+      "sha256": "348930469b05e3b0f44c03ebddd9cb9b5303e39ef4501d288f99cb925fca822e",
+      "size": [
+        493,
+        506
+      ]
+    },
+    {
+      "entry": 81,
+      "originalPath": "индустрия/Персонажи/9066b5ee-a827-4d30-9e5e-ee6626c566e5.jpg",
+      "path": "research/imported/base/081.jpg",
+      "bytes": 857385,
+      "sha256": "4ea99f73b99981a42c8038c34d03fbb3dacecec895cefe2cb4ebfafbe1db61a7",
+      "size": [
+        997,
+        1024
+      ]
+    },
+    {
+      "entry": 82,
+      "originalPath": "индустрия/Персонажи/95e86aca-ae35-4d8d-8436-7b69f02fcb09-removebg-preview.png",
+      "path": "research/imported/base/082.png",
+      "bytes": 211945,
+      "sha256": "23758b8db9bc5d3f139293b399c596a8883946e9ee4ab1ff67c4a890080a0091",
+      "size": [
+        444,
+        562
+      ]
+    },
+    {
+      "entry": 83,
+      "originalPath": "индустрия/Персонажи/95e86aca-ae35-4d8d-8436-7b69f02fcb09.jpg",
+      "path": "research/imported/base/083.jpg",
+      "bytes": 594219,
+      "sha256": "9f8fbe053b43f7d0967d103b9733e0370afee40ef1ce4a763c6c0cd75be48691",
+      "size": [
+        808,
+        1024
+      ]
+    },
+    {
+      "entry": 84,
+      "originalPath": "индустрия/Персонажи/9997f21e-23d1-49d1-b54f-fb911430d9e1-removebg-preview.png",
+      "path": "research/imported/base/084.png",
+      "bytes": 201491,
+      "sha256": "c50389ccce46f40e1c39b15a145c62ebd7670c33009986c35bd0f14740789831",
+      "size": [
+        449,
+        556
+      ]
+    },
+    {
+      "entry": 85,
+      "originalPath": "индустрия/Персонажи/9997f21e-23d1-49d1-b54f-fb911430d9e1.jpg",
+      "path": "research/imported/base/085.jpg",
+      "bytes": 749089,
+      "sha256": "4837b94971facbd0195ee5fecd6a2d1c205b4794d49e00cb24919b9ffd67c6e5",
+      "size": [
+        826,
+        1024
+      ]
+    },
+    {
+      "entry": 86,
+      "originalPath": "индустрия/Персонажи/9b4e1d23-9157-4163-8a56-53ea76ffbba6-removebg-preview.png",
+      "path": "research/imported/base/086.png",
+      "bytes": 351513,
+      "sha256": "a8ef1ae6f08fbb9501474b89fb539a09702d694cfc207894277e96f3a3f39646",
+      "size": [
+        405,
+        616
+      ]
+    },
+    {
+      "entry": 87,
+      "originalPath": "индустрия/Персонажи/abffe926-1a11-48d2-9617-522d86611e12-removebg-preview.png",
+      "path": "research/imported/base/087.png",
+      "bytes": 287179,
+      "sha256": "a5ec97497e54866b41c8bde3f15d67b1ee3c43aaf84f1e6b8530a4b09b38cf59",
+      "size": [
+        394,
+        633
+      ]
+    },
+    {
+      "entry": 88,
+      "originalPath": "индустрия/Персонажи/bcd03fdf-cb95-4155-9d56-564cca71e517-removebg-preview.png",
+      "path": "research/imported/base/088.png",
+      "bytes": 212011,
+      "sha256": "3d2b2f0debfd70124991c2c472a0fced63ee36eb0e3b3b179598eba3bcfb21e5",
+      "size": [
+        402,
+        620
+      ]
+    },
+    {
+      "entry": 89,
+      "originalPath": "индустрия/Персонажи/be5640fd-f11d-4c3f-b349-969d1dc131d2-removebg-preview.png",
+      "path": "research/imported/base/089.png",
+      "bytes": 269024,
+      "sha256": "9be06d90f1eeb9d83fecc6bfc657fd5d8281c32a0d5b6b163ad8a25ef2bfd913",
+      "size": [
+        431,
+        579
+      ]
+    },
+    {
+      "entry": 90,
+      "originalPath": "индустрия/Персонажи/bf1c30ef-f37e-49ae-8630-92f64d377d2b-removebg-preview.png",
+      "path": "research/imported/base/090.png",
+      "bytes": 258838,
+      "sha256": "0bda7e32c43041ebd4b45a3452831f398021d6a3d8647c23be20ec003b171950",
+      "size": [
+        439,
+        569
+      ]
+    },
+    {
+      "entry": 91,
+      "originalPath": "индустрия/Персонажи/bf1c30ef-f37e-49ae-8630-92f64d377d2b.jpg",
+      "path": "research/imported/base/091.jpg",
+      "bytes": 683836,
+      "sha256": "099422225cdd68cf0617ac8c20b1c7c6b8c07a2457acb78b26e0b8d317557406",
+      "size": [
+        790,
+        1024
+      ]
+    },
+    {
+      "entry": 92,
+      "originalPath": "индустрия/Персонажи/c973577c-5212-4f95-90b1-276465a3a545-removebg-preview.png",
+      "path": "research/imported/base/092.png",
+      "bytes": 233203,
+      "sha256": "818095699088817f48f23cccd72a5e716a460a79d244b9218946482cc8614a8f",
+      "size": [
+        482,
+        518
+      ]
+    },
+    {
+      "entry": 93,
+      "originalPath": "индустрия/Персонажи/ce4258be-a4b9-4fbd-9ab3-3c2862fdd04c-removebg-preview.png",
+      "path": "research/imported/base/093.png",
+      "bytes": 192243,
+      "sha256": "723ee4746f6c4716a36cb62db72e4b8207f80eba0b6d0cb291f77685379fa8b8",
+      "size": [
+        533,
+        468
+      ]
+    },
+    {
+      "entry": 94,
+      "originalPath": "индустрия/Персонажи/ce4258be-a4b9-4fbd-9ab3-3c2862fdd04c.jpg",
+      "path": "research/imported/base/094.jpg",
+      "bytes": 691291,
+      "sha256": "f0f02360c0d5edf62d6eda200cd9163f89ad8750646a73eb353fd93883f982bf",
+      "size": [
+        1024,
+        898
+      ]
+    },
+    {
+      "entry": 95,
+      "originalPath": "индустрия/Персонажи/d219e1c3-2dba-4510-8a0d-b4fd9c5908ba-removebg-preview.png",
+      "path": "research/imported/base/095.png",
+      "bytes": 317185,
+      "sha256": "026e42e594ce516131b0dac5f2debf66d3ef56a42867a662324d43043c77224d",
+      "size": [
+        421,
+        593
+      ]
+    },
+    {
+      "entry": 96,
+      "originalPath": "индустрия/Персонажи/d219e1c3-2dba-4510-8a0d-b4fd9c5908ba.jpg",
+      "path": "research/imported/base/096.jpg",
+      "bytes": 655717,
+      "sha256": "6866dbe4bea3e1a4be1918a99592f5cbc826c9a774c4e779e8b55f775cf56f7a",
+      "size": [
+        727,
+        1024
+      ]
+    },
+    {
+      "entry": 97,
+      "originalPath": "индустрия/Персонажи/d566832d-697e-4199-9472-39facfb8079d-removebg-preview.png",
+      "path": "research/imported/base/097.png",
+      "bytes": 209894,
+      "sha256": "43df934e76742e2df9c04b03a719fb6604a84b11315be36fd6ae2da0955ac32c",
+      "size": [
+        667,
+        374
+      ]
+    },
+    {
+      "entry": 98,
+      "originalPath": "индустрия/Персонажи/d566832d-697e-4199-9472-39facfb8079d.jpg",
+      "path": "research/imported/base/098.jpg",
+      "bytes": 486090,
+      "sha256": "69db6810583217c12cd897e132597a6ea5e8f6e61f4b51f66e9ee7cd21b4ae4f",
+      "size": [
+        1024,
+        574
+      ]
+    },
+    {
+      "entry": 99,
+      "originalPath": "индустрия/Персонажи/df4bfe1b-90a3-4a06-b8ad-96b87ed59de4-removebg-preview.png",
+      "path": "research/imported/base/099.png",
+      "bytes": 194688,
+      "sha256": "d8cfd3eddf68778ad1e969a8f5a1aa9e0b6384a3223ac2fb3d1ba15b48218dc1",
+      "size": [
+        436,
+        572
+      ]
+    },
+    {
+      "entry": 100,
+      "originalPath": "индустрия/Персонажи/df4bfe1b-90a3-4a06-b8ad-96b87ed59de4.jpg",
+      "path": "research/imported/base/100.jpg",
+      "bytes": 652981,
+      "sha256": "8823e9cb8aef04638208861c91b1b8d2f2b9ba4b836e87636030de8bef9656c6",
+      "size": [
+        781,
+        1024
+      ]
+    },
+    {
+      "entry": 101,
+      "originalPath": "индустрия/Персонажи/e6a194fd-8631-40a6-ada2-441dd14fefa3-removebg-preview.png",
+      "path": "research/imported/base/101.png",
+      "bytes": 222325,
+      "sha256": "0909b375dfc7f30d29f2e6e839f831ca639c1a44700f6ca30a6c3a892c50adbe",
+      "size": [
+        465,
+        536
+      ]
+    },
+    {
+      "entry": 102,
+      "originalPath": "индустрия/Персонажи/e6a194fd-8631-40a6-ada2-441dd14fefa3.jpg",
+      "path": "research/imported/base/102.jpg",
+      "bytes": 716930,
+      "sha256": "18883dc2b980bcc6e2bf7dedc36c0d2fb66338592917190dc95ab454fb7e6c6d",
+      "size": [
+        889,
+        1024
+      ]
+    },
+    {
+      "entry": 103,
+      "originalPath": "индустрия/Персонажи/ee7834fb-3051-4110-b8e3-18fd6d90b33a-removebg-preview.png",
+      "path": "research/imported/base/103.png",
+      "bytes": 310426,
+      "sha256": "b8ede0917931c28045b29ec59c678ee50352911754307ce63c05ae3784492aba",
+      "size": [
+        431,
+        579
+      ]
+    },
+    {
+      "entry": 104,
+      "originalPath": "индустрия/Персонажи/ee7834fb-3051-4110-b8e3-18fd6d90b33a.jpg",
+      "path": "research/imported/base/104.jpg",
+      "bytes": 608655,
+      "sha256": "1417c2686717f002f1a7399d54a94411c4ad24f4e21535d26a7dd0d3fd0b5632",
+      "size": [
+        763,
+        1024
+      ]
+    },
+    {
+      "entry": 105,
+      "originalPath": "индустрия/Персонажи/ef8e23fe-3e00-4055-863a-54f8fde077ac-removebg-preview.png",
+      "path": "research/imported/base/105.png",
+      "bytes": 380173,
+      "sha256": "75596cd4932410eec2b807aeb3d07fcd8d498e8f00c94467eedc399e4e7e8efd",
+      "size": [
+        434,
+        575
+      ]
+    },
+    {
+      "entry": 106,
+      "originalPath": "индустрия/Персонажи/ef8e23fe-3e00-4055-863a-54f8fde077ac.jpg",
+      "path": "research/imported/base/106.jpg",
+      "bytes": 766082,
+      "sha256": "a2b804a9c22df3360109bd0cdaf451d1e550713ac97e061963bcd1d8212303a6",
+      "size": [
+        772,
+        1024
+      ]
+    },
+    {
+      "entry": 107,
+      "originalPath": "индустрия/Персонажи/efc3e744-a84d-4d0c-b219-e18f673afd75-removebg-preview.png",
+      "path": "research/imported/base/107.png",
+      "bytes": 341379,
+      "sha256": "8bc359130a429544c90456b715154d86085ac1d1aa0901bda15535288537f424",
+      "size": [
+        579,
+        431
+      ]
+    },
+    {
+      "entry": 108,
+      "originalPath": "индустрия/Персонажи/efc3e744-a84d-4d0c-b219-e18f673afd75.jpg",
+      "path": "research/imported/base/108.jpg",
+      "bytes": 678816,
+      "sha256": "53e20798ab7b664e7af1638d715a1fb8e55a8bf4223c90aebf151d1e4743ea37",
+      "size": [
+        1024,
+        763
+      ]
+    },
+    {
+      "entry": 109,
+      "originalPath": "индустрия/Стартовые/Дизайн без названия (2).png",
+      "path": "research/imported/base/109.png",
+      "bytes": 478793,
+      "sha256": "3bfc564d076910a616556ba4b446c0cd5a00554f920f081fe484a0ea1e77c887",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 110,
+      "originalPath": "индустрия/Стартовые/Дизайн без названия (3).png",
+      "path": "research/imported/base/110.png",
+      "bytes": 453366,
+      "sha256": "b65a9a1b9476b0edb3ad4965d773af4343521f45677259e560088725ce2c2fd2",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 111,
+      "originalPath": "индустрия/Стартовые/Дизайн без названия (4).png",
+      "path": "research/imported/base/111.png",
+      "bytes": 491251,
+      "sha256": "e50d3b6d79bf364dcfa14911f55cce8d046d23882018fa82e7f1938e1c3762f0",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 112,
+      "originalPath": "индустрия/Стартовые/Дизайн без названия (5).png",
+      "path": "research/imported/base/112.png",
+      "bytes": 501869,
+      "sha256": "06693271d37c3bdbbb8c774ff5fa9aab93b684f1e0ec9739b043c7f6e54f785b",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 113,
+      "originalPath": "индустрия/Стартовые/Дизайн без названия (6).png",
+      "path": "research/imported/base/113.png",
+      "bytes": 465264,
+      "sha256": "a01ea5ae677a03931a6f7c1c8b8e80b6e48f631935e66c60c7f0ea9579324b82",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 114,
+      "originalPath": "индустрия/Стартовые/Дизайн без названия (7).png",
+      "path": "research/imported/base/114.png",
+      "bytes": 449049,
+      "sha256": "79db3d3fd5862b21662e72c47d245c9f6adda55b8264f873c843f6ff2d93bfb9",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 115,
+      "originalPath": "индустрия/Стартовые/Персонажи.pdf",
+      "path": "research/imported/base/115.pdf",
+      "bytes": 1095331,
+      "sha256": "ac5034ae512bc732ca9aa1bf54b9476443ded36317baf2d3a3d02406c59a10da"
+    },
+    {
+      "entry": 116,
+      "originalPath": "индустрия/Стартовые/Персонажи.pptx",
+      "path": "research/imported/base/116.pptx",
+      "bytes": 22003267,
+      "sha256": "fcb4559e5529bada783c7d1454930ed4c8b8d1b0a9ceccaab0474b37d3487816"
+    },
+    {
+      "entry": 117,
+      "originalPath": "индустрия/Стартовые/Стартовые.pptx",
+      "path": "research/imported/base/117.pptx",
+      "bytes": 23503420,
+      "sha256": "ceab80986149958e4db2e50fc6b437cb826ad1a13c09f1309364dc475ad0f551"
+    },
+    {
+      "entry": 118,
+      "originalPath": "индустрия/Шахты/5.png",
+      "path": "research/imported/base/118.png",
+      "bytes": 390724,
+      "sha256": "99b00f1e13a5a9b434a1cb860c7019aef4ce91df237dbc3a72b90058c8b5e624",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 119,
+      "originalPath": "индустрия/Шахты/6.png",
+      "path": "research/imported/base/119.png",
+      "bytes": 361978,
+      "sha256": "01e8f33ead34f62d68b0eddabcafe5f72f9a05619d234b6711080944b3f480ba",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 120,
+      "originalPath": "индустрия/Шахты/8.png",
+      "path": "research/imported/base/120.png",
+      "bytes": 367869,
+      "sha256": "5fbf0e449ca8f46b38b7ab17be1b7bcb4c008debfe6b3575aecabafd07993b22",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 121,
+      "originalPath": "индустрия/Шахты/Дизайн без названия (2).png",
+      "path": "research/imported/base/121.png",
+      "bytes": 338295,
+      "sha256": "143f9082116526dcb60c60c0e4d21bee56cf588cbfecbeec73cd937f54b95345",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 122,
+      "originalPath": "индустрия/Шахты/Дизайн без названия (3).png",
+      "path": "research/imported/base/122.png",
+      "bytes": 427317,
+      "sha256": "b336009a4f7f822344393541371f322ae0bea490f0339ed2c7806b3689b23f26",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 123,
+      "originalPath": "индустрия/Шахты/Дизайн без названия (4).png",
+      "path": "research/imported/base/123.png",
+      "bytes": 394630,
+      "sha256": "2c5197037fbcbc7c308a69ff835b1eee7c31ed69867bcfcb958100c10419d68f",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 124,
+      "originalPath": "индустрия/Шахты/Дизайн без названия (5).png",
+      "path": "research/imported/base/124.png",
+      "bytes": 409934,
+      "sha256": "07ce1f3b325b77c1042cafbe1716da63f4a004dd4b7ae52abe54ad0fb3b61c0c",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 125,
+      "originalPath": "индустрия/Шахты/Шахта2.png",
+      "path": "research/imported/base/125.png",
+      "bytes": 348082,
+      "sha256": "67d4857c5d14fe4a63178079866d0716f76ae0d29478f7537af4ebcee75ba5a1",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 126,
+      "originalPath": "индустрия/Шахты/Шахта3.png",
+      "path": "research/imported/base/126.png",
+      "bytes": 376269,
+      "sha256": "e7c405a326f2aa0d4f85667f22f8203de59a0c2c87d326fa7e7d8a2111664df2",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 127,
+      "originalPath": "индустрия/Шахты/Шахта4.png",
+      "path": "research/imported/base/127.png",
+      "bytes": 327002,
+      "sha256": "619b3add09c838694fcae548f9be799dc5836d28b0a98633b9a8eb152f2e7940",
+      "size": [
+        500,
+        500
+      ]
+    },
+    {
+      "entry": 128,
+      "originalPath": "индустрия/Шахты/Шахты.pptx",
+      "path": "research/imported/base/128.pptx",
+      "bytes": 25778653,
+      "sha256": "211650129dcdcbc36473bc5dfcfa11db0d727f34c11f8a89adbe3805701717f8"
+    }
+  ]
+}
