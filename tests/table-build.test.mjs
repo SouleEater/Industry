@@ -103,3 +103,42 @@ test('в сборке нет обращений к неопределённым 
     assert.ok(declared.test(html), `имя ${name} используется, но в сборке не объявлено`);
   }
 });
+
+test('локальный сервер отдаёт собранный стол и отвергает лишнее', build, async () => {
+  const { spawn } = await import('node:child_process');
+  const port = 4200 + Math.floor(Math.random() * 300);
+  const server = spawn(process.execPath, ['scripts/serve-table.mjs'], {
+    cwd: root, env: { ...process.env, INDUSTRY_TABLE_PORT: String(port) }, stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  try {
+    await new Promise((ok, fail) => {
+      const timer = setTimeout(() => fail(new Error('сервер не поднялся')), 8000);
+      server.stdout.on('data', chunk => {
+        if (String(chunk).includes(`:${port}`)) { clearTimeout(timer); ok(); }
+      });
+      server.on('error', fail);
+    });
+
+    const page = await fetch(`http://127.0.0.1:${port}/`);
+    assert.equal(page.status, 200);
+    assert.match(page.headers.get('content-type'), /text\/html/);
+    const csp = page.headers.get('content-security-policy');
+    assert.match(csp, /font-src https:\/\/fonts\.gstatic\.com/, 'шрифты должны быть разрешены');
+    assert.match(csp, /img-src 'self' data:/, 'встроенные картинки должны быть разрешены');
+    const body = await page.text();
+    assert.equal(body, fs.readFileSync(out, 'utf8'), 'отдаётся не тот файл, что собран');
+
+    const posted = await fetch(`http://127.0.0.1:${port}/`, { method: 'POST' });
+    assert.equal(posted.status, 405, 'изменять состояние сервера нельзя');
+  } finally {
+    server.kill('SIGKILL');
+  }
+});
+
+test('сервер отказывается открываться на произвольном адресе', build, async () => {
+  const { spawnSync } = await import('node:child_process');
+  const run = env => spawnSync(process.execPath, ['scripts/serve-table.mjs'],
+    { cwd: root, env: { ...process.env, ...env }, encoding: 'utf8', timeout: 8000 });
+  assert.match(run({ INDUSTRY_TABLE_HOST: '8.8.8.8' }).stderr, /INDUSTRY_TABLE_HOST/);
+  assert.match(run({ INDUSTRY_TABLE_PORT: '80' }).stderr, /INDUSTRY_TABLE_PORT/);
+});
