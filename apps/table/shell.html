@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Индустрия — цифровой стол</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;700&display=swap">
+<style>/*STYLE*/</style>
+</head>
+<body>
+
+<div id="table">
+  <header class="rail" id="rail"></header>
+  <div class="rivals" id="rivals"></div>
+  <section class="stage">
+    <div class="stage-head" id="stage-head"></div>
+    <div class="strip" id="stage-strip"></div>
+  </section>
+  <section class="board" id="board">
+    <div class="board-head" id="board-head"></div>
+    <div class="prompt" id="prompt"></div>
+    <div id="effect-slot"></div>
+    <div class="line-wrap">
+      <div class="line-head" id="line-head"></div>
+      <div class="strip mine" id="line-strip"></div>
+    </div>
+  </section>
+</div>
+
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h2>ЖУРНАЛ</h2>
+    <button class="chip" onclick="document.getElementById('drawer').classList.remove('open')">Закрыть</button>
+  </div>
+  <ul class="log" id="log"></ul>
+</aside>
+
+<dialog id="setup"><div class="sheet">
+  <form id="setup-form">
+    <h2>Новая партия</h2>
+    <p>Четыре раунда: аукцион дисками, затем производство. Побеждает тот, у кого больше денег.</p>
+    <label class="field"><span>Игроков</span>
+      <select name="count"><option value="3">3 игрока</option><option value="4">4 игрока</option></select></label>
+    <div class="pname-row field"><span>Игрок 1</span><input class="pname" maxlength="24" placeholder="Аня"></div>
+    <div class="pname-row field"><span>Игрок 2</span><input class="pname" maxlength="24" placeholder="Борис"></div>
+    <div class="pname-row field"><span>Игрок 3</span><input class="pname" maxlength="24" placeholder="Вика"></div>
+    <div class="pname-row field"><span>Игрок 4</span><input class="pname" maxlength="24" placeholder="Гена"></div>
+
+    <label class="switch"><input type="checkbox" name="capitalists" checked>
+      <span>Промышленники<small>Каждый получает личную способность: Эварист, Генри, Моника, Артур, Тимур.</small></span></label>
+    <label class="switch"><input type="checkbox" name="chain">
+      <span>Цепочка<small>Старые предприятия сохраняют взаимный порядок, производство идёт слева направо.</small></span></label>
+    <label class="switch"><input type="checkbox" name="variable">
+      <span>Переменный капитал<small>Пятый диск: номинал любой, оплачивается углём. На аукцион выходит ещё одно предприятие.</small></span></label>
+
+    <div class="warn-box" id="deck-warn">Вчетвером за четыре раунда нужно 32 предприятия, а в каталоге их 31 — не хватает пяти пар из базовой коробки. Невыкупленные лоты будут возвращаться в колоду, пока карты не догружены.</div>
+    <div class="sheet-actions">
+      <button type="button" class="act ghost" data-close>Отмена</button>
+      <button type="submit" class="act">Начать</button>
+    </div>
+  </form>
+  <hr style="border:0;border-top:1px solid var(--rivet);margin:20px 0 14px">
+  <h2 style="font-size:16px">Играть с друзьями</h2>
+  <p>Откройте начатую партию как общий стол или присоединитесь к чужому по коду.</p>
+  <div class="sheet-actions" style="justify-content:flex-start">
+    <button class="act ghost" id="host-btn">Открыть стол</button>
+  </div>
+  <form id="join-form" class="sheet-actions" style="justify-content:flex-start;margin-top:10px">
+    <input id="join-code" class="field" style="width:130px;margin:0;padding:9px 11px;border-radius:7px;background:#0d151c;border:1px solid var(--rivet);color:var(--chalk)" placeholder="код стола" maxlength="6">
+    <button class="act ghost" type="submit">Присоединиться</button>
+  </form>
+</div></dialog>
+
+<dialog id="result"><div class="sheet">
+  <div id="result-body"></div>
+  <div class="sheet-actions">
+    <button class="act ghost" data-close>Закрыть</button>
+    <button class="act" data-open="setup" data-close>Ещё партию</button>
+  </div>
+</div></dialog>
+
+<dialog id="gallery"><div class="sheet">
+  <div id="gallery-body"></div>
+  <div class="sheet-actions"><button class="act ghost" data-close>Закрыть</button></div>
+</div></dialog>
+
+<dialog id="invite"><div class="sheet">
+  <div id="invite-body"></div>
+  <div class="sheet-actions"><button class="act ghost" data-close>Закрыть</button></div>
+</div></dialog>
+
+<dialog id="zoom"></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>/*DATA*/</script>
+<script>/*ENGINE*/</script>
+<script>/*UIA*/</script>
+<script>/*UIB*/</script>
+</body>
+</html>

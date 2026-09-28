@@ -45,3 +45,9 @@ export function rankPlayers(players) {
   const first = rows[0];
   return rows.map(p => ({ ...p, winner: p.money === first.money && p.companies === first.companies && p.resources === first.resources }));
 }
+
+// Состояние и команды — чистый JSON, поэтому копия через JSON точная.
+// Запасной путь нужен средам без structuredClone (старые браузеры, jsdom).
+export const clone = typeof structuredClone === 'function'
+  ? structuredClone
+  : value => JSON.parse(JSON.stringify(value));

@@ -1,7 +1,8 @@
 import { createGame, dispatch, RULES_VERSION } from '../domain/engine.mjs';
+import { clone } from '../domain/rules.mjs';
 
 export function restore(record, pack) {
-  if (!record || record.schemaVersion !== 1 || ![RULES_VERSION, 'prototype-0.1'].includes(record.rulesVersion) || record.contentVersion !== pack.version)
+  if (!record || record.schemaVersion !== 1 || ![RULES_VERSION, 'prototype-0.2', 'prototype-0.1'].includes(record.rulesVersion) || record.contentVersion !== pack.version)
     throw new Error('Сохранение относится к другой версии игры. Оно не будет перезаписано автоматически.');
   if (!Array.isArray(record.commands) || record.commands.length > 10000) throw new Error('Повреждён журнал сохранения.');
   let state = createGame(record.rulesVersion === 'prototype-0.1' ? { ...record.options, planning: false, productionChain: false, turnSeconds: 0 } : record.options, pack);
@@ -24,13 +25,13 @@ export class GameSession {
   start(options) {
     const state = createGame(options, this.pack);
     this.state = state;
-    this.record = { schemaVersion: 1, rulesVersion: RULES_VERSION, contentVersion: this.pack.version, options: structuredClone(options), commands: [] };
+    this.record = { schemaVersion: 1, rulesVersion: RULES_VERSION, contentVersion: this.pack.version, options: clone(options), commands: [] };
     this.persist(); return this.state;
   }
   send(command) {
     const accepted = { ...command, expectedRevision: this.state.revision };
     const next = dispatch(this.state, accepted, this.pack.definitions);
-    this.state = next; this.record.commands.push(structuredClone(accepted)); this.persist(); return next;
+    this.state = next; this.record.commands.push(clone(accepted)); this.persist(); return next;
   }
   persist() {
     try { this.storage.save(this.record); this.storageError = null; }

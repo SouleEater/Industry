@@ -11,3 +11,8 @@ research/sources/*.html
 research/sources/*.txt
 research/scans/incoming/*
 !research/scans/incoming/.gitkeep
+
+# Сгенерировано scripts/pack-table-images.py из apps/web/assets/user-base/.
+# В репозитории не нужно: исходные JPEG уже под контролем версий.
+apps/table/card-images.js
+apps/table/card-images.manifest.json
