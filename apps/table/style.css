@@ -405,3 +405,7 @@ dialog::backdrop { background: rgba(4, 7, 10, .78); backdrop-filter: blur(3px); 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+/* шаг модернизации: его легко пролистать, поэтому он выделен */
+.effect.upgrade-step { border-color: var(--upgrade); box-shadow: 0 0 0 1px rgba(111, 183, 155, .25); }
+.card-tag.hint { top: auto; bottom: 6px; left: 6px; color: var(--upgrade); background: rgba(8, 11, 15, .88); }

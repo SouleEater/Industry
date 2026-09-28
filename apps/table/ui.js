@@ -486,26 +486,38 @@ function renderEffect() {
   if (!e) return;
 
   if (e.kind === 'upgrade') {
-    const box = el('div', 'effect');
+    const box = el('div', 'effect upgrade-step');
     const cost = p.wallet.upgrade > 0 ? { coal: 1, upgrade: 1 }
       : p.ability === 'metal-for-upgrade' ? { coal: 1, metal: 1 } : { coal: 1, upgrade: 1 };
-    box.append(el('div', 'effect-head',
-      `<span>Модернизация — строка ${a.index + 1} из ${list.length}</span>
-       <span class="step">${list.map((_, i) => `<i class="${i <= a.index ? 'on' : ''}"></i>`).join('')}</span>`));
-    box.append(el('div', 'recipe', `${bundleHtml(cost)}<span class="to">→</span><span>перевернуть предприятие на улучшенную сторону</span>`));
-    if (p.ability === 'metal-for-upgrade' && p.wallet.upgrade === 0) {
-      box.append(el('div', 'ledger-note', 'Тимур: жетоны кончились, поэтому платите металлом.'));
-    }
     const targets = p.cards.filter(c => !c.upgraded && DEFS[c.definitionId].kind === 'company');
+    const paid = canPay(p.wallet, cost);
+    const offer = targets.length > 0 && paid;
+
+    box.append(el('div', 'effect-head',
+      `<span>${offer ? 'Можно модернизировать предприятие' : 'Модернизация'} — строка ${a.index + 1} из ${list.length}</span>
+       <span class="step">${list.map((_, i) => `<i class="${i <= a.index ? 'on' : ''}"></i>`).join('')}</span>`));
+    box.append(el('div', 'recipe',
+      `${bundleHtml(cost)}<span class="to">\u2192</span><span>предприятие переворачивается на улучшенную сторону и получает новые строки</span>`));
+    if (p.ability === 'metal-for-upgrade' && p.wallet.upgrade === 0)
+      box.append(el('div', 'ledger-note', 'Тимур: жетоны кончились, поэтому платите металлом.'));
+
     const row = el('div', 'counter');
-    if (!targets.length) row.append(el('span', 'cap', 'Улучшать нечего: стартовое предприятие не улучшается.'));
-    else if (!canPay(p.wallet, cost)) row.append(el('span', 'cap', 'Не хватает ресурсов на модернизацию.'));
-    else targets.forEach(c => {
-      const btn = el('button', 'act ghost', esc(DEFS[c.definitionId].name));
-      btn.onclick = () => act({ type: 'Upgrade', cardId: c.id });
-      row.append(btn);
-    });
-    const skip = el('button', 'act ghost', 'Дальше');
+    if (!targets.length) {
+      row.append(el('span', 'cap', p.cards.length > 1
+        ? 'Все ваши предприятия уже улучшены. Стартовое улучшать нельзя.'
+        : 'Улучшать нечего: у вас только стартовое предприятие, а оно не улучшается.'));
+    } else if (!paid) {
+      const short = Object.entries(cost).filter(([k, v]) => p.wallet[k] < v)
+        .map(([k, v]) => `${v - p.wallet[k]} ${RES_SHORT[k]}`).join(' и ');
+      row.append(el('span', 'cap', `Не хватает ${short}.`));
+    } else {
+      targets.forEach(c => {
+        const btn = el('button', 'act', `Улучшить: ${DEFS[c.definitionId].name}`);
+        btn.onclick = () => act({ type: 'Upgrade', cardId: c.id });
+        row.append(btn);
+      });
+    }
+    const skip = el('button', 'act ghost', offer ? 'Не улучшать' : 'Дальше');
     skip.onclick = () => act({ type: 'NextEffect' });
     row.append(skip);
     box.append(row);
@@ -556,6 +568,11 @@ function renderLine() {
       btn.onclick = () => { ui.repeatPick = false; act({ type: 'RepeatCard', cardId: card.id }); };
       node.append(btn);
     } else if (producing && !s.production.active) {
+      // Подсказка: строка модернизации живёт на стартовом предприятии, найти её неочевидно.
+      const rows = [...DEFS[card.definitionId].effects, ...(card.upgraded ? DEFS[card.definitionId].advanced : [])];
+      if (!used && rows.some(r => r.kind === 'upgrade')
+        && p.cards.some(c => !c.upgraded && DEFS[c.definitionId].kind === 'company'))
+        node.querySelector('.card-face').append(el('span', 'card-tag hint', 'здесь модернизация'));
       const chainWait = s.config.productionChain && p.cards.find(c => c.usedRound !== s.round)?.id !== card.id;
       const btn = el('button', `card-cta ${used || chainWait ? '' : 'go'}`,
         used ? 'Отработало' : chainWait ? 'Ждёт очереди' : 'Запустить');
