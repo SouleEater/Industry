@@ -42,7 +42,7 @@
     <h2>Новая партия</h2>
     <p>Четыре раунда: аукцион дисками, затем производство. Побеждает тот, у кого больше денег.</p>
     <label class="field"><span>Игроков</span>
-      <select name="count"><option value="3">3 игрока</option><option value="4">4 игрока</option></select></label>
+      <select name="count"><option value="2">2 игрока и агент</option><option value="3" selected>3 игрока</option><option value="4">4 игрока</option></select></label>
     <div class="pname-row field"><span>Игрок 1</span><input class="pname" maxlength="24" placeholder="Аня"></div>
     <div class="pname-row field"><span>Игрок 2</span><input class="pname" maxlength="24" placeholder="Борис"></div>
     <div class="pname-row field"><span>Игрок 3</span><input class="pname" maxlength="24" placeholder="Вика"></div>
@@ -55,6 +55,7 @@
     <label class="switch"><input type="checkbox" name="variable">
       <span>Переменный капитал<small>Пятый диск: номинал любой, оплачивается углём. На аукцион выходит ещё одно предприятие.</small></span></label>
 
+    <div class="warn-box" id="agent-note">Вдвоём третьим участником садится агент базовой игры. Он делает ставки сам: бросок d6 выбирает предприятие, затем ставится минимальный легальный диск. Агент не копит ресурсы, выигранные им предприятия выбывают из игры, а вы всё равно получаете свои компенсации.</div>
     <div class="warn-box" id="deck-warn">Вчетвером за четыре раунда нужно 32 предприятия, а в каталоге их 31 — не хватает пяти пар из базовой коробки. Невыкупленные лоты будут возвращаться в колоду, пока карты не догружены.</div>
     <div class="sheet-actions">
       <button type="button" class="act ghost" data-close>Отмена</button>

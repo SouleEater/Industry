@@ -1,5 +1,6 @@
 import { requireRule, emptyWallet, validateWallet, integer, canPay, transfer, shuffle, rankPlayers, classifyConversion, clone } from './rules.mjs';
 import { ABILITIES, has, compensationUnits, upgradeCost, extraDisc, ignoresBidLimits, pickWinner } from './capitalists.mjs';
+import { isAgent, rollD6, chooseBid } from './agent.mjs';
 
 export const RULES_VERSION = 'prototype-0.3';
 function definition(definitions, id) {
@@ -32,7 +33,7 @@ function phase(s, name) { requireRule(s.phase === name, 'WRONG_PHASE', 'Это �
 function actor(s, id) { requireRule(currentActor(s) === id, 'NOT_YOUR_TURN', 'Сейчас действует другой игрок.'); }
 
 export function createGame({ names = ['Игрок 1', 'Игрок 2', 'Игрок 3'], variableCapital = false, seed = 2026, planning = true, productionChain = false, turnSeconds = 0, capitalists = false } = {}, pack) {
-  requireRule(Array.isArray(names) && [3, 4].includes(names.length), 'UNSUPPORTED_CONFIG', 'Учебный стол поддерживает 3 или 4 игроков.');
+  requireRule(Array.isArray(names) && [2, 3, 4].includes(names.length), 'UNSUPPORTED_CONFIG', 'Поддерживаются 2, 3 или 4 игрока.');
   requireRule(names.every(n => typeof n === 'string' && n.trim().length > 0 && n.length <= 40), 'INVALID_NAME', 'Имя должно содержать от 1 до 40 символов.');
   requireRule(typeof variableCapital === 'boolean' && integer(seed) && seed <= 0xffffffff, 'INVALID_CONFIG', 'Некорректная настройка партии.');
   requireRule(typeof planning === 'boolean' && typeof productionChain === 'boolean' && (!productionChain || planning), 'INVALID_CONFIG', 'Цепочка требует планирования.');
@@ -48,7 +49,9 @@ export function createGame({ names = ['Игрок 1', 'Игрок 2', 'Игро�
   }
   // Каждому своё стартовое предприятие, если пакет их даёт; иначе одно общее.
   let rng = seed >>> 0;
-  const lotsPerRound = names.length + 4 + Number(variableCapital);
+  const humans = names.length;
+  const withAgent = humans === 2;   // B16: вдвоём третьим участником садится агент базы
+  const lotsPerRound = humans + 4 + Number(variableCapital);
   let startIds = names.map(() => pack.startupId);
   if (Array.isArray(pack.startupIds) && pack.startupIds.length >= names.length) {
     const roll = shuffle(pack.startupIds, rng); rng = roll.seed;
@@ -82,10 +85,15 @@ export function createGame({ names = ['Игрок 1', 'Игрок 2', 'Игро�
       cards: [{ id: `start${i}`, definitionId: startIds[i], upgraded: false, usedRound: 0 }],
       discs: [], blocked: false, done: false, repeated: false })),
     lots: [], discard: [], settlement: null, production: null, pendingPair: null, events: [] };
-  event(s, 'GameStarted'); startAuction(s); return s;
+  if (withAgent) s.players.push({ id: 'agent', name: 'Агент', agent: true, seat: s.players.length, ability: null, capitalistId: null,
+    wallet: emptyWallet(), cards: [], discs: [], blocked: false, done: false, repeated: false, lockedOrder: [], planned: false });
+  s.config.agent = withAgent;
+  event(s, 'GameStarted', withAgent ? { agent: true } : {}); startAuction(s); return s;
 }
 function startAuction(s) {
-  const count = s.players.length + 4 + Number(s.config.variableCapital);
+  // Агент не увеличивает число лотов: вдвоём их шесть (B03).
+  const humans = s.players.filter(p => !isAgent(p)).length;
+  const count = humans + 4 + Number(s.config.variableCapital);
   if (s.deck.length < count && s.discard.length) {
     // Каталог короче базовой коробки, поэтому невыкупленные лоты возвращаются в колоду.
     const back = shuffle(s.discard, s.rng); s.rng = back.seed;
@@ -100,7 +108,9 @@ function startAuction(s) {
     const extra = extraDisc(p);
     if (extra) p.discs.push({ ...extra });
     if (s.config.variableCapital) p.discs.push({ id: 'variable', kind: 'variable', value: 0, used: false });
-    p.blocked = false; p.done = false; p.repeated = false;
+    p.blocked = false; p.repeated = false;
+    // Агент не строит экономику (B17): фазы плана и производства он пропускает.
+    p.done = isAgent(p); p.planned = isAgent(p);
   }
   s.phase = 'auction'; s.turn = s.firstPlayer; s.settlement = null; s.production = null; s.pendingPair = null;
   event(s, 'AuctionStarted', { count: s.lots.length });
@@ -149,13 +159,35 @@ function canBidAnywhere(s, p) {
 }
 function advanceBid(s) {
   if (s.pendingPair) return;
-  for (let step = 1; step <= s.players.length; step++) {
-    const next = (s.turn + step) % s.players.length, p = s.players[next];
-    if (canBidAnywhere(s, p)) { s.turn = next; return; }
-    p.blocked = true;
+  // Цикл, а не рекурсия: после хода агента очередь идёт дальше в том же проходе.
+  for (let guard = 0; guard <= s.players.length * 6; guard++) {
+    let moved = false;
+    for (let step = 1; step <= s.players.length; step++) {
+      const next = (s.turn + step) % s.players.length, p = s.players[next];
+      if (canBidAnywhere(s, p)) { s.turn = next; moved = true; break; }
+      p.blocked = true;
+    }
+    if (!moved) {
+      s.phase = 'settlement'; s.settlement = { index: 0, cursor: 0, queue: null, pending: null };
+      event(s, 'AuctionClosed'); return;
+    }
+    const current = s.players[s.turn];
+    if (!isAgent(current)) return;
+    playAgent(s, current);
   }
-  s.phase = 'settlement'; s.settlement = { index: 0, cursor: 0, queue: null, pending: null };
-  event(s, 'AuctionClosed');
+  requireRule(false, 'AGENT_LOOP', 'Агент зациклился.');
+}
+
+/** Ставка агента: d6 выбирает лот, дальше минимальный легальный диск, поиск вправо (B16). */
+function playAgent(s, agent) {
+  const roll = rollD6(s.rng); s.rng = roll.seed;
+  const move = chooseBid(agent, s.lots, (d, lot) => !bidLegality(s, agent, d, lot, d.value), roll.value);
+  if (!move) { agent.blocked = true; event(s, 'AgentBlocked', { roll: roll.value }); return; }
+  const disc = agent.discs.find(d => d.id === move.discId);
+  const lot = s.lots.find(l => l.id === move.lotId);
+  disc.used = true;
+  lot.bids.push({ playerId: agent.id, discId: disc.id, kind: disc.kind, value: disc.value, bonus: false });
+  event(s, 'BidPlaced', { playerId: agent.id, lotId: lot.id, value: disc.value, discKind: disc.kind, bonus: false, roll: roll.value });
 }
 function resolveLot(s, defs) {
   const flow = s.settlement, lot = s.lots[flow.index];
@@ -168,7 +200,9 @@ function resolveLot(s, defs) {
   const losers = flow.queue.slice(0, -1), effect = definition(defs, lot.card.definitionId).compensation;
   while (flow.cursor < losers.length) {
     const bid = losers[flow.cursor], p = player(s, bid.playerId), units = compensationUnits(p, bid.value);
-    if (effect.kind === 'gain') {
+    if (isAgent(p)) {
+      event(s, 'Compensation', { playerId: p.id, lotId: lot.id, times: 0, agent: true }); flow.cursor++;
+    } else if (effect.kind === 'gain') {
       transfer(p.wallet, {}, effect.gain, units);
       event(s, 'Compensation', { playerId: p.id, lotId: lot.id, gain: effect.gain, times: units }); flow.cursor++;
     } else if (units === 0 || !canPay(p.wallet, effect.cost)) {
@@ -176,7 +210,10 @@ function resolveLot(s, defs) {
     } else { flow.pending = { playerId: p.id, effect, limit: units }; return; }
   }
   const winner = flow.queue.at(-1);
-  if (winner) {
+  if (winner && isAgent(player(s, winner.playerId))) {
+    s.discard.push(lot.card);
+    event(s, 'AgentTookCard', { cardId: lot.card.id, definitionId: lot.card.definitionId, value: winner.value });
+  } else if (winner) {
     player(s, winner.playerId).cards.push(lot.card);
     event(s, 'CardWon', { playerId: winner.playerId, cardId: lot.card.id, definitionId: lot.card.definitionId, value: winner.value });
   } else { s.discard.push(lot.card); event(s, 'CardDiscarded', { cardId: lot.card.id }); }
@@ -313,8 +350,13 @@ export function dispatch(state, command, defs) {
       requireRule(p.cards.every(c => c.usedRound === s.round), 'CARDS_REMAIN', 'Используйте оставшиеся предприятия.');
       p.done = true;
       if (s.players.every(p => p.done)) {
-        if (s.round === 4) { s.phase = 'finished'; s.result = rankPlayers(s.players); event(s, 'GameFinished'); }
-        else { s.round++; s.firstPlayer = (s.firstPlayer + 1) % s.players.length; startAuction(s); }
+        if (s.round === 4) { s.phase = 'finished'; s.result = rankPlayers(s.players.filter(x => !isAgent(x))); event(s, 'GameFinished'); }
+        else {
+          s.round++;
+          // Метка первого игрока обходит только людей: агент не ведёт раунд и не разбирает лоты.
+          do { s.firstPlayer = (s.firstPlayer + 1) % s.players.length; } while (isAgent(s.players[s.firstPlayer]));
+          startAuction(s);
+        }
       } else {
         do { s.turn = (s.turn + 1) % s.players.length; } while (s.players[s.turn].done);
       }

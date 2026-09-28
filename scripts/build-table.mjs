@@ -13,6 +13,7 @@ const read = p => fs.readFileSync(path.join(root, p), 'utf8');
 const MODULES = [
   'packages/domain/rules.mjs',
   'packages/domain/capitalists.mjs',
+  'packages/domain/agent.mjs',
   'packages/domain/engine.mjs',
   'packages/content/user-base-catalog.mjs',
   'packages/content/base-pack.mjs',

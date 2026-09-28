@@ -194,17 +194,25 @@ function renderRivals() {
     if (currentActor(s) === p.id) node.classList.add('acting');
     if (s.phase === 'production' && p.done) node.classList.add('finished');
     const cap = p.capitalistId ? capOf(p.capitalistId) : null;
-    node.innerHTML = `
-      <div class="rival-top">
-        <span class="rival-name">${esc(p.name)}</span>
-        ${cap ? `<span class="rival-cap" title="${esc(cap.text)}">${esc(cap.name)}</span>` : ''}
-      </div>
-      <div class="rival-row">
-        ${resHtml('money', p.wallet.money, { keepZero: true })}
-        ${['coal', 'metal', 'oil', 'upgrade'].map(k => resHtml(k, p.wallet[k])).join('')}
-        <span class="res" title="предприятий"><span class="num" style="color:var(--frost)">${p.cards.length} пр.</span></span>
-      </div>
-      <div class="rival-row discs">${p.discs.map(d => discHtml(d, p.seat, { small: true })).join('')}</div>`;
+    const lastRoll = [...s.events].reverse().find(e => e.playerId === 'agent' && e.roll)?.roll;
+    node.innerHTML = p.agent
+      ? `<div class="rival-top">
+          <span class="rival-name">${esc(p.name)}</span>
+          <span class="rival-cap" title="Агент базовой игры: бросок d6 выбирает предприятие, затем ставится минимальный легальный диск. Экономику не копит.">ставит сам</span>
+        </div>
+        <div class="rival-row"><span class="res"><span class="num" style="color:var(--frost)">${
+          lastRoll ? 'последний бросок d6: ' + lastRoll : 'ещё не ходил'}</span></span></div>
+        <div class="rival-row discs">${p.discs.map(d => discHtml(d, p.seat, { small: true })).join('')}</div>`
+      : `<div class="rival-top">
+          <span class="rival-name">${esc(p.name)}</span>
+          ${cap ? `<span class="rival-cap" title="${esc(cap.text)}">${esc(cap.name)}</span>` : ''}
+        </div>
+        <div class="rival-row">
+          ${resHtml('money', p.wallet.money, { keepZero: true })}
+          ${['coal', 'metal', 'oil', 'upgrade'].map(k => resHtml(k, p.wallet[k])).join('')}
+          <span class="res" title="предприятий"><span class="num" style="color:var(--frost)">${p.cards.length} пр.</span></span>
+        </div>
+        <div class="rival-row discs">${p.discs.map(d => discHtml(d, p.seat, { small: true })).join('')}</div>`;
     box.append(node);
   }
 }
@@ -268,7 +276,7 @@ function renderStage() {
       : '<h2>ПАРТИЯ ОКОНЧЕНА</h2><span></span>';
 
   for (const p of s.players) {
-    if (p.id === me().id) continue;
+    if (p.id === me().id || p.agent) continue;
     const wrap = el('div', 'card');
     wrap.style.width = 'auto';
     const row = el('div');
@@ -572,7 +580,9 @@ const LOG_TEXT = {
   GameStarted: () => 'Партия началась',
   AuctionStarted: e => `Выставлено лотов: ${e.count}`,
   DeckRefilled: () => 'Невыкупленные лоты вернулись в колоду (в каталоге 31 предприятие вместо 36)',
-  BidPlaced: (e, n) => `<b>${n(e.playerId)}</b> ставит ${e.value}${e.bonus ? ' (доп. двойка)' : ''}`,
+  BidPlaced: (e, n) => `<b>${n(e.playerId)}</b> ставит ${e.value}${e.bonus ? ' (доп. двойка)' : ''}${e.roll ? ' · d6: ' + e.roll : ''}`,
+  AgentTookCard: e => `Агент забирает «${DEFS[e.definitionId].name}» за ${e.value} — карта выбывает из игры`,
+  AgentBlocked: e => `Агенту ставить некуда (d6: ${e.roll})`,
   PairRequired: (e, n) => `<b>${n(e.playerId)}</b> обязан выставить дополнительную двойку`,
   AuctionClosed: () => 'Ставок больше нет',
   Compensation: (e, n) => e.times ? `<b>${n(e.playerId)}</b> берёт компенсацию ×${e.times}` : `<b>${n(e.playerId)}</b> без компенсации`,
@@ -751,6 +761,7 @@ function openSetup() {
     const n = Number(field('count').value);
     form.querySelectorAll('.pname-row').forEach((row, i) => row.style.display = i < n ? '' : 'none');
     $('#deck-warn').style.display = n === 4 ? '' : 'none';
+    $('#agent-note').style.display = n === 2 ? '' : 'none';
   };
   field('count').onchange = sync; sync();
   $('#setup').showModal();

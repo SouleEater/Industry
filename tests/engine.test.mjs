@@ -31,7 +31,13 @@ test('setup deals 7 lots, independent instances, starts only once',()=>{
   assert.deepEqual(s.players[0].discs.map(d=>d.value),[1,2,3,4]);
 });
 test('deterministic seed produces exactly the same state',()=>assert.deepEqual(game({seed:97}),game({seed:97})));
-test('unsupported two player mode is rejected rather than silently omitting agent',()=>assert.throws(()=>game({names:['A','B']}),e=>e.code==='UNSUPPORTED_CONFIG'));
+test('two player mode seats the base agent instead of being rejected',()=>{
+  const s=game({names:['A','B']});
+  assert.equal(s.players.length,3);
+  assert.equal(s.players[2].agent,true);
+  assert.equal(s.lots.length,6,'B03: вдвоём выставляется 6 предприятий');
+});
+test('five players are still rejected',()=>assert.throws(()=>game({names:['A','B','C','D','E']}),e=>e.code==='UNSUPPORTED_CONFIG'));
 test('unknown effect is not ignored',()=>{
   const bad=structuredClone(pack); bad.definitions.mine.effects=[{kind:'supply'}];
   assert.throws(()=>createGame({},bad),e=>e.code==='UNSUPPORTED_EFFECT');

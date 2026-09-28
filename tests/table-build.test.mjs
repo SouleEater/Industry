@@ -68,3 +68,38 @@ test('размер сборки укладывается в лимит одно�
   const mb = fs.statSync(out).size / 1048576;
   assert.ok(mb < 16, `${mb.toFixed(2)} МБ — больше 16 МБ`);
 });
+
+test('сборщик знает обо всех модулях, от которых зависит стол', build, () => {
+  const script = fs.readFileSync(path.join(root, 'scripts/build-table.mjs'), 'utf8');
+  const listed = new Set([...script.matchAll(/'(packages\/[^']+\.mjs)'/g)].map(m => m[1]));
+  assert.ok(listed.size > 0, 'в сборщике не найден список модулей');
+
+  // Обходим граф импортов от точек входа: всё, что достижимо, обязано быть в списке.
+  const seen = new Set(), queue = [...listed];
+  while (queue.length) {
+    const file = queue.pop();
+    if (seen.has(file)) continue;
+    seen.add(file);
+    const source = fs.readFileSync(path.join(root, file), 'utf8');
+    for (const m of source.matchAll(/from\s+'(\.[^']+)'/g)) {
+      const resolved = path.relative(root, path.resolve(path.dirname(path.join(root, file)), m[1])).split(path.sep).join('/');
+      assert.ok(listed.has(resolved), `модуль ${resolved} нужен ${file}, но его нет в scripts/build-table.mjs`);
+      queue.push(resolved);
+    }
+  }
+});
+
+test('в сборке нет обращений к неопределённым именам домена', build, () => {
+  const html = fs.readFileSync(out, 'utf8');
+  // Каждое имя, экспортируемое доменом, должно быть объявлено в собранном скрипте.
+  const exported = new Set();
+  for (const file of ['packages/domain/engine.mjs', 'packages/domain/agent.mjs', 'packages/domain/capitalists.mjs']) {
+    const source = fs.readFileSync(path.join(root, file), 'utf8');
+    for (const m of source.matchAll(/^export\s+(?:const|let|function|class)\s+([A-Za-z_$][\w$]*)/gm)) exported.add(m[1]);
+  }
+  assert.ok(exported.has('isAgent') && exported.has('createGame'));
+  for (const name of exported) {
+    const declared = new RegExp(`^(?:const|let|function|class)\\s+${name}\\b`, 'm');
+    assert.ok(declared.test(html), `имя ${name} используется, но в сборке не объявлено`);
+  }
+});

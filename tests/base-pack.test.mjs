@@ -135,7 +135,7 @@ function autoplay(options, seed) {
 }
 
 const combos = [];
-for (const players of [3, 4])
+for (const players of [2, 3, 4])
   for (const productionChain of [false, true])
     for (const variableCapital of [false, true])
       for (const capitalists of [false, true])
@@ -148,7 +148,7 @@ for (const options of combos) {
     for (let run = 0; run < 6; run++) {
       const s = autoplay(options, 7000 + run * 131 + combos.indexOf(options) * 17);
       assert.equal(s.round, 4);
-      assert.equal(s.result.length, options.names.length);
+      assert.equal(s.result.length, options.names.length, 'в итоге только люди');
       assert.ok(s.result.some(r => r.winner));
       for (const p of s.players)
         for (const [k, v] of Object.entries(p.wallet))
