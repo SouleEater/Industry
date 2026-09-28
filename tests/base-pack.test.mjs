@@ -168,5 +168,6 @@ test('за фаззингом все пять способностей дейс�
   for (const a of ['repeat-card', 'compensation-plus-one', 'unrestricted-bids', 'paired-extra-disc', 'metal-for-upgrade'])
     assert.ok(seen.has(a), `способность ${a} ни разу не раздалась`);
   assert.ok(seen.has('CardRepeated'), 'повтор Эвариста ни разу не сработал');
-  assert.ok(seen.has('PairOffered'), 'дополнительную двойку Артура ни разу не предложили');
+  // Парное предложение — свойство обновлённой карты «Интербеллума», в базе его нет.
+  assert.equal(seen.has('PairOffered'), false, 'в базовой партии парного предложения быть не должно');
 });

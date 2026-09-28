@@ -32,13 +32,14 @@ function owned(p, id) {
 function phase(s, name) { requireRule(s.phase === name, 'WRONG_PHASE', 'Это действие недоступно в текущей фазе.'); }
 function actor(s, id) { requireRule(currentActor(s) === id, 'NOT_YOUR_TURN', 'Сейчас действует другой игрок.'); }
 
-export function createGame({ names = ['Игрок 1', 'Игрок 2', 'Игрок 3'], variableCapital = false, seed = 2026, planning = true, productionChain = false, turnSeconds = 0, capitalists = false } = {}, pack) {
+export function createGame({ names = ['Игрок 1', 'Игрок 2', 'Игрок 3'], variableCapital = false, seed = 2026, planning = true, productionChain = false, turnSeconds = 0, capitalists = false, pairedExtraDisc = false } = {}, pack) {
   requireRule(Array.isArray(names) && [2, 3, 4].includes(names.length), 'UNSUPPORTED_CONFIG', 'Поддерживаются 2, 3 или 4 игрока.');
   requireRule(names.every(n => typeof n === 'string' && n.trim().length > 0 && n.length <= 40), 'INVALID_NAME', 'Имя должно содержать от 1 до 40 символов.');
   requireRule(typeof variableCapital === 'boolean' && integer(seed) && seed <= 0xffffffff, 'INVALID_CONFIG', 'Некорректная настройка партии.');
   requireRule(typeof planning === 'boolean' && typeof productionChain === 'boolean' && (!productionChain || planning), 'INVALID_CONFIG', 'Цепочка требует планирования.');
   requireRule(integer(turnSeconds) && turnSeconds <= 3600, 'INVALID_CONFIG', 'Таймер: 0 (выключен) или 1–3600 секунд.');
   requireRule(typeof capitalists === 'boolean', 'INVALID_CONFIG', 'Промышленники включаются или выключаются.');
+  requireRule(typeof pairedExtraDisc === 'boolean', 'INVALID_CONFIG', 'Парная двойка включается или выключается.');
   requireRule(pack && typeof pack.version === 'string' && Array.isArray(pack.deck), 'INVALID_PACK', 'Не указан контент-пакет.');
   for (const d of Object.values(pack.definitions)) {
     requireRule(['company', 'startup'].includes(d.kind), 'INVALID_PACK', 'Неизвестный тип карты.');
@@ -76,7 +77,7 @@ export function createGame({ names = ['Игрок 1', 'Игрок 2', 'Игро�
   requireRule(pack.deck.length >= lotsPerRound, 'SHORT_DECK', 'Недостаточно карт даже на один раунд.');
   pack.deck.forEach(id => requireRule(definition(pack.definitions, id).kind === 'company', 'INVALID_PACK', 'В колоде должна быть карта предприятия.'));
   const s = { schemaVersion: 1, rulesVersion: RULES_VERSION, contentVersion: pack.version,
-    revision: 0, config: { variableCapital, planning, productionChain, turnSeconds, capitalists, deckCoversGame: pack.deck.length >= lotsPerRound * 4 },
+    revision: 0, config: { variableCapital, planning, productionChain, turnSeconds, capitalists, pairedExtraDisc, deckCoversGame: pack.deck.length >= lotsPerRound * 4 },
     rng, round: 1, firstPlayer: 0, turn: 0,
     phase: 'auction', deck: pack.deck.map((definitionId, i) => ({ id: `c${i}`, definitionId, upgraded: false, usedRound: 0 })),
     players: names.map((name, i) => ({ id: `p${i}`, name: name.trim(), seat: i,
@@ -135,7 +136,7 @@ function bidLegality(s, p, d, lot, value) {
   if (pair && pair.playerId === p.id) {
     if (!d.bonus) return 'Сначала выставьте дополнительную двойку.';
     if (lot.id === pair.lotId) return 'Дополнительная двойка идёт на другое предприятие.';
-  } else if (d.bonus) {
+  } else if (d.bonus && s.config.pairedExtraDisc) {
     return 'Дополнительную двойку ставят вместе с обычной ставкой.';
   }
   const v = d.kind === 'fixed' ? d.value : value;
@@ -149,21 +150,37 @@ function bidLegality(s, p, d, lot, value) {
 }
 function canBidAnywhere(s, p) {
   if (p.blocked) return false;
-  return p.discs.some(d => !d.used && !d.bonus && s.lots.some(l => {
-    if (d.kind === 'fixed') return !bidLegality(s, p, d, l, d.value);
-    // At most N opponents forbid N values: checking 0..N is sufficient, even for huge coal stocks.
-    for (let v = 0; v <= Math.min(p.wallet.coal, l.bids.length); v++)
-      if (!bidLegality(s, p, d, l, v)) return true;
-    return false;
-  }));
+  return p.discs.some(d => {
+    // Бонусный диск сам по себе ход не даёт только в режиме парной ставки.
+    if (d.used || (d.bonus && s.config.pairedExtraDisc)) return false;
+    return s.lots.some(l => {
+      if (d.kind === 'fixed') return !bidLegality(s, p, d, l, d.value);
+      // At most N opponents forbid N values: checking 0..N is sufficient, even for huge coal stocks.
+      for (let v = 0; v <= Math.min(p.wallet.coal, l.bids.length); v++)
+        if (!bidLegality(s, p, d, l, v)) return true;
+      return false;
+    });
+  });
+}
+/**
+ * Очередь ставок. Люди идут по кругу от первого игрока, агент ВСЕГДА последний:
+ * правила базы, стр.6 — «в каждом круге аукциона агент кладёт диск третьим».
+ */
+function auctionOrder(s) {
+  const humans = [], agents = [];
+  s.players.forEach((p, i) => (isAgent(p) ? agents : humans).push(i));
+  const start = Math.max(0, humans.indexOf(s.firstPlayer));
+  return [...humans.slice(start), ...humans.slice(0, start), ...agents];
 }
 function advanceBid(s) {
   if (s.pendingPair) return;
+  const order = auctionOrder(s);
   // Цикл, а не рекурсия: после хода агента очередь идёт дальше в том же проходе.
-  for (let guard = 0; guard <= s.players.length * 6; guard++) {
+  for (let guard = 0; guard <= order.length * 6; guard++) {
     let moved = false;
-    for (let step = 1; step <= s.players.length; step++) {
-      const next = (s.turn + step) % s.players.length, p = s.players[next];
+    let pos = order.indexOf(s.turn);
+    for (let step = 1; step <= order.length; step++) {
+      const next = order[(pos + step) % order.length], p = s.players[next];
       if (canBidAnywhere(s, p)) { s.turn = next; moved = true; break; }
       p.blocked = true;
     }
@@ -266,8 +283,10 @@ export function dispatch(state, command, defs) {
       d.used = true; lot.bids.push({ playerId: p.id, discId: d.id, kind: d.kind, value: d.value, bonus: Boolean(d.bonus) });
       event(s, 'BidPlaced', { playerId: p.id, lotId: lot.id, value: d.value, discKind: d.kind, bonus: Boolean(d.bonus) });
       const bonus = p.discs.find(x => x.bonus);
+      // Парная постановка — свойство ОБНОВЛЁННОЙ карты из «Интербеллума».
+      // Базовая карта даёт просто лишний диск 2, он выставляется как любой другой.
       if (s.pendingPair?.playerId === p.id) s.pendingPair = null;
-      else if (bonus && !bonus.used) {
+      else if (s.config.pairedExtraDisc && bonus && !bonus.used) {
         // Двойка выставляется вместе с этой ставкой, поэтому легальность проверяется уже в парном режиме.
         s.pendingPair = { playerId: p.id, lotId: lot.id };
         if (s.lots.some(l => !bidLegality(s, p, bonus, l, bonus.value))) event(s, 'PairOffered', { playerId: p.id });

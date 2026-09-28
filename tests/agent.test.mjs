@@ -167,6 +167,7 @@ test('Моника ставит переменный диск на уже зан
 test('Артур в цепочке: парная двойка не ломает очередь и не трогает линию', () => {
   let s = createGame({ names: ['А', 'Б', 'В'], seed: 44, productionChain: true }, basePack);
   s.players[0].ability = 'paired-extra-disc';
+  s.config.pairedExtraDisc = true;
   s.players[0].discs.push({ ...extraDisc(s.players[0]) });
   const before = s.players[0].cards.map(c => c.id);
   s = as(s, 'p0', 'Bid', { discId: 'fixed1', lotId: s.lots[0].id });
@@ -207,4 +208,71 @@ test('Эварист: повтор не даёт бесконечный цикл
   assert.equal(s.players[0].wallet.coal, 8);
   s.players[0].cards[0].usedRound = s.round;
   assert.throws(() => act(s, 'RepeatCard', { cardId: s.players[0].cards[0].id }), e => e.code === 'ALREADY_REPEATED');
+});
+
+/* ---------- очередь агента (правила базы, стр. 6) ---------- */
+test('агент кладёт диск третьим в каждом круге, независимо от первого игрока', () => {
+  for (const firstPlayer of [0, 1]) {
+    let s = duo();
+    s.firstPlayer = firstPlayer;
+    s.turn = firstPlayer;
+    const seen = [];
+    let guard = 0;
+    while (s.phase === 'auction' && guard++ < 60) {
+      const me = s.players.find(p => p.id === currentActor(s));
+      seen.push(me.id);
+      const disc = me.discs.find(d => !d.used);
+      const lot = disc && s.lots.find(l => !bidError(s, me.id, disc.id, l.id, disc.value));
+      if (!disc || !lot) break;
+      s = as(s, me.id, 'Bid', { discId: disc.id, lotId: lot.id });
+      // ход агента движок делает сам, поэтому в seen он не попадёт
+      const placed = s.lots.flatMap(l => l.bids);
+      if (placed.filter(b => b.playerId === 'agent').length >= 4) break;
+    }
+    const human = firstPlayer === 0 ? ['p0', 'p1'] : ['p1', 'p0'];
+    assert.deepEqual(seen.slice(0, 4), [...human, ...human],
+      `первый игрок ${firstPlayer}: люди должны чередоваться, агент между ними не встаёт`);
+  }
+});
+
+test('агент ставит диск только после обоих людей', () => {
+  let s = duo();
+  s.firstPlayer = 1; s.turn = 1;
+  assert.equal(currentActor(s), 'p1');
+  s = as(s, 'p1', 'Bid', { discId: 'fixed1', lotId: s.lots[0].id });
+  assert.equal(s.lots.flatMap(l => l.bids).some(b => b.playerId === 'agent'), false,
+    'после первого человека агент ходить не должен');
+  assert.equal(currentActor(s), 'p0');
+  s = as(s, 'p0', 'Bid', { discId: 'fixed1', lotId: s.lots[1].id });
+  assert.equal(s.lots.flatMap(l => l.bids).filter(b => b.playerId === 'agent').length, 1,
+    'после второго человека агент обязан поставить диск');
+});
+
+test('метка первого игрока обходит только людей', () => {
+  let s = duo();
+  const firsts = new Set();
+  for (let round = 0; round < 4; round++) {
+    firsts.add(s.players[s.firstPlayer].id);
+    assert.equal(isAgent(s.players[s.firstPlayer]), false, 'агент не может быть первым игроком');
+    let guard = 0;
+    while (s.phase !== 'finished' && s.round === round + 1 && guard++ < 4000) {
+      const me = s.players.find(p => p.id === currentActor(s));
+      if (s.phase === 'auction') {
+        const moves = [];
+        for (const d of me.discs) if (!d.used)
+          for (const l of s.lots) if (!bidError(s, me.id, d.id, l.id, d.value)) moves.push({ discId: d.id, lotId: l.id });
+        if (!moves.length) break;
+        s = as(s, me.id, 'Bid', moves[0]);
+      } else if (s.phase === 'settlement') {
+        const pend = s.settlement.pending;
+        s = pend ? as(s, pend.playerId, 'Compensate', { times: 0 }) : act(s, 'ResolveLot');
+      } else if (s.phase === 'planning') s = act(s, 'ConfirmPlan');
+      else {
+        const free = me.cards.filter(c => c.usedRound !== s.round);
+        if (s.production.active) s = act(s, 'NextEffect');
+        else s = free.length ? act(s, 'UseCard', { cardId: free[0].id }) : act(s, 'FinishProduction');
+      }
+    }
+  }
+  assert.deepEqual([...firsts].sort(), ['p0', 'p1'], 'метка должна побывать у обоих людей');
 });

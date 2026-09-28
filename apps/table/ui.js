@@ -333,7 +333,7 @@ function renderPrompt() {
 
   if (s.phase === 'auction') {
     if (waiting) return promptBox(`Ставку делает <b>${actorName}</b>.`, true);
-    const pair = s.pendingPair?.playerId === p.id;
+    const pair = s.pendingPair?.playerId === p.id;   // только в режиме обновлённой карты «Интербеллума»
     const box = promptBox(pair
       ? 'Можно доставить дополнительную двойку Артура — но только <b>на другое предприятие</b>. Или пропустите: диск останется у вас.'
       : ui.disc ? 'Теперь выберите предприятие: в карточке появится расчёт обоих исходов.'

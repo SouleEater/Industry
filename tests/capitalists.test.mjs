@@ -107,13 +107,34 @@ test('Артур получает пятый диск, остальные — н
   assert.equal(extraDisc({ ability: null }), null);
 });
 
-test('дополнительную двойку нельзя выставить первой', () => {
-  const s = withAbility('paired-extra-disc', 0);
+test('в базе дополнительная двойка ставится как любой другой диск', () => {
+  let s = withAbility('paired-extra-disc', 0);
+  s = as(s, 'p0', 'Bid', { discId: 'bonus2', lotId: s.lots[0].id });
+  assert.equal(s.lots[0].bids[0].value, 2);
+  assert.equal(s.pendingPair, null, 'база не требует парной ставки');
+  assert.equal(currentActor(s), 'p1', 'очередь сразу уходит дальше');
+});
+
+test('в базе двойка подчиняется обычным ограничениям ставки', () => {
+  let s = withAbility('paired-extra-disc', 0);
+  s = as(s, 'p0', 'Bid', { discId: 'fixed2', lotId: s.lots[0].id });
+  assert.throws(() => as(s, 'p0', 'Bid', { discId: 'bonus2', lotId: s.lots[0].id }),
+    e => e.code === 'NOT_YOUR_TURN', 'ход уже ушёл');
+  s = as(s, 'p1', 'Bid', { discId: 'fixed1', lotId: s.lots[1].id });
+  s = as(s, 'p2', 'Bid', { discId: 'fixed1', lotId: s.lots[2].id });
+  assert.throws(() => as(s, 'p0', 'Bid', { discId: 'bonus2', lotId: s.lots[0].id }),
+    e => e.code === 'ILLEGAL_BID', 'значение 2 на этом лоте уже занято');
+  s = as(s, 'p0', 'Bid', { discId: 'bonus2', lotId: s.lots[1].id });
+  assert.equal(s.lots[1].bids.some(b => b.value === 2), true);
+});
+
+test('обновлённая двойка «Интербеллума» требует парной ставки', () => {
+  let s = withAbility('paired-extra-disc', 0, { pairedExtraDisc: true });
   assert.throws(() => as(s, 'p0', 'Bid', { discId: 'bonus2', lotId: s.lots[0].id }), e => e.code === 'ILLEGAL_BID');
 });
 
 test('после обычной ставки Артур обязан доставить двойку на другое предприятие', () => {
-  let s = withAbility('paired-extra-disc', 0);
+  let s = withAbility('paired-extra-disc', 0, { pairedExtraDisc: true });
   s = as(s, 'p0', 'Bid', { discId: 'fixed3', lotId: s.lots[0].id });
   assert.equal(s.pendingPair?.playerId, 'p0');
   assert.equal(currentActor(s), 'p0', 'очередь не уходит до парной ставки');
@@ -127,7 +148,7 @@ test('после обычной ставки Артур обязан доста�
 });
 
 test('дополнительная двойка необязательна: от неё можно отказаться', () => {
-  let s = withAbility('paired-extra-disc', 0);
+  let s = withAbility('paired-extra-disc', 0, { pairedExtraDisc: true });
   s = as(s, 'p0', 'Bid', { discId: 'fixed3', lotId: s.lots[0].id });
   assert.equal(s.pendingPair?.playerId, 'p0', 'двойка именно предлагается');
   s = as(s, 'p0', 'SkipPair');
@@ -137,7 +158,7 @@ test('дополнительная двойка необязательна: от
 });
 
 test('после отказа двойку предлагают снова на следующей ставке', () => {
-  let s = withAbility('paired-extra-disc', 0);
+  let s = withAbility('paired-extra-disc', 0, { pairedExtraDisc: true });
   s = as(s, 'p0', 'Bid', { discId: 'fixed3', lotId: s.lots[0].id });
   s = as(s, 'p0', 'SkipPair');
   s = as(s, 'p1', 'Bid', { discId: 'fixed1', lotId: s.lots[1].id });
@@ -149,7 +170,7 @@ test('после отказа двойку предлагают снова на 
 });
 
 test('отказ от двойки не мешает закрыть аукцион', () => {
-  let s = withAbility('paired-extra-disc', 0);
+  let s = withAbility('paired-extra-disc', 0, { pairedExtraDisc: true });
   let guard = 0;
   while (s.phase === 'auction' && guard++ < 200) {
     const me = s.players.find(p => p.id === currentActor(s));
