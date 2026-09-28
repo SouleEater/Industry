@@ -409,3 +409,22 @@ dialog::backdrop { background: rgba(4, 7, 10, .78); backdrop-filter: blur(3px); 
 /* шаг модернизации: его легко пролистать, поэтому он выделен */
 .effect.upgrade-step { border-color: var(--upgrade); box-shadow: 0 0 0 1px rgba(111, 183, 155, .25); }
 .card-tag.hint { top: auto; bottom: 6px; left: 6px; color: var(--upgrade); background: rgba(8, 11, 15, .88); }
+
+/* карта университета: иллюстраций издателя в проекте нет, показываем значения */
+.card.university .uni-face {
+  display: flex; flex-direction: column; gap: 7px;
+  padding: 11px 10px; background: linear-gradient(#20303a, #16222b);
+  border: 1px solid var(--edge); color: var(--chalk); overflow: hidden;
+}
+.uni-head { font-family: Oswald, sans-serif; font-size: 14px; letter-spacing: .1em; color: var(--upgrade); }
+.uni-note { font-size: 10.5px; color: var(--frost); line-height: 1.35; }
+.uni-opt { display: flex; gap: 6px; align-items: baseline; font-size: 12px; }
+.uni-key { color: var(--frost); font-size: 10.5px; flex: none; }
+.uni-opt .recipe { font-size: 12px; gap: 5px; }
+.uni-token { margin-top: auto; font-size: 10.5px; color: var(--frost); line-height: 1.35; border-top: 1px dashed var(--rivet); padding-top: 7px; }
+.uni-token b { color: var(--brass); font-weight: 400; }
+.managers { display: inline-flex; gap: 4px; }
+.token {
+  width: 22px; height: 22px; border-radius: 5px; display: grid; place-items: center;
+  font-size: 12px; background: #2b3a2f; border: 1px solid var(--upgrade); color: var(--upgrade); cursor: help;
+}

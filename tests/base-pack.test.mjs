@@ -99,9 +99,17 @@ function autoplay(options, seed) {
     if (s.phase === 'settlement') {
       const pend = s.settlement.pending;
       if (!pend) { go({ type: 'ResolveLot' }); continue; }
-      let max = 0;
-      for (let t = pend.limit; t >= 1; t--) if (canPay(me.wallet, pend.effect.cost, t)) { max = t; break; }
-      go({ type: 'Compensate', times: rnd(max + 1) });
+      // Вариантов может быть два (университет): распределяем единицы между ними.
+      const picks = pend.options.map(() => 0);
+      let left = pend.limit;
+      pend.options.forEach((e, i) => {
+        if (!left) return;
+        let max = left;
+        if (e.kind === 'convert') { max = 0; for (let t = left; t >= 1; t--) if (canPay(me.wallet, e.cost, t)) { max = t; break; } }
+        const take = rnd(max + 1);
+        picks[i] = take; left -= take;
+      });
+      go({ type: 'Compensate', picks });
       continue;
     }
     if (s.phase === 'planning') { go({ type: 'ConfirmPlan' }); continue; }

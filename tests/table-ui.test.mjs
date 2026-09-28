@@ -176,3 +176,86 @@ test('агент ни разу не требует ввода от челове�
     assert.deepEqual(errors, []);
   } finally { close(); }
 });
+
+test('университет показывает оба варианта компенсации и жетон', ready, async () => {
+  const { w, errors, close } = await open();
+  try {
+    const form = w.document.querySelector('#setup-form');
+    form.querySelectorAll('.pname').forEach((input, i) => { input.value = ['Аня', 'Борис', 'Вика'][i]; });
+    form.querySelector('[name=count]').value = '3';
+    form.querySelector('[name=universities]').checked = true;
+    form.dispatchEvent(new w.Event('submit', { cancelable: true, bubbles: true }));
+    assert.ok(w.eval('S()'), 'партия не создалась');
+    assert.equal(w.eval('S().tables.length'), 2, 'втроём выкладывают две карты университетов');
+
+    const faces = [...w.document.querySelectorAll('#stage-strip .card.university .uni-face')];
+    assert.equal(faces.length, 2, 'университеты должны быть видны в ленте лотов');
+    assert.match(faces[0].textContent, /Университет/);
+    assert.equal(faces[0].querySelectorAll('.uni-opt').length, 2, 'на карте два варианта');
+    assert.match(faces[0].textContent, /Жетон управляющего/);
+
+    // расчёт ставки на университет говорит про делимую компенсацию
+    const uniLot = w.eval('S().lots.filter(l => l.kind === "university")[0].id');
+    w.eval(`ui.disc = "fixed3"; ui.focus = ${JSON.stringify(uniLot)}; render();`);
+    const ledger = w.document.querySelector('.ledger');
+    assert.ok(ledger, 'расчёт не открылся');
+    assert.match(ledger.textContent, /жетон управляющего/i);
+    assert.match(ledger.textContent, /делите между двумя вариантами/);
+    assert.deepEqual(errors, []);
+  } finally { close(); }
+});
+
+test('компенсацию университета можно разделить кнопками', ready, async () => {
+  const { w, errors, close } = await open();
+  try {
+    const form = w.document.querySelector('#setup-form');
+    form.querySelectorAll('.pname').forEach((input, i) => { input.value = ['Аня', 'Борис', 'Вика'][i]; });
+    form.querySelector('[name=count]').value = '3';
+    form.querySelector('[name=universities]').checked = true;
+    form.dispatchEvent(new w.Event('submit', { cancelable: true, bubbles: true }));
+
+    // ставим на университет старший и младший диск, остальное раскладываем как придётся
+    const ok = w.eval(`
+      (function () {
+        const uni = S().lots.filter(l => l.kind === 'university')[0].id;
+        act({ type: 'Bid', discId: 'fixed4', lotId: uni }, true);
+        act({ type: 'Bid', discId: 'fixed3', lotId: uni }, true);
+        let guard = 0, offset = 0;
+        while (S().phase === 'auction' && guard++ < 300) {
+          const s = S(), me = s.players.find(x => x.id === currentActor(s));
+          let placed = false;
+          outer: for (const d of me.discs) { if (d.used) continue;
+            for (let i = 0; i < s.lots.length; i++) {
+              const l = s.lots[(i + offset) % s.lots.length];
+              if (!bidError(s, me.id, d.id, l.id, d.value)) {
+                act({ type: 'Bid', discId: d.id, lotId: l.id }, true); placed = true; offset++; break outer; } } }
+          if (!placed) break;
+        }
+        guard = 0;
+        while (S().phase === 'settlement' && guard++ < 400) {
+          const pend = S().settlement.pending;
+          if (pend && pend.options.length > 1) return pend.limit;
+          act(pend ? { type: 'Compensate', picks: pend.options.map(() => 0) } : { type: 'ResolveLot' }, true);
+        }
+        return 0;
+      })();`);
+    assert.ok(ok > 0, 'делимая компенсация не встретилась');
+
+    w.eval('ui.seat = S().players.findIndex(x => x.id === S().settlement.pending.playerId); render();');
+    const panel = w.document.querySelector('#effect-slot');
+    const rows = [...panel.querySelectorAll('.counter')];
+    assert.ok(rows.length >= 3, 'два варианта плюс строка действий');
+    assert.match(panel.textContent, /распределите/);
+
+    const plus = [...rows[0].querySelectorAll('button')].find(b => b.textContent === '+');
+    assert.ok(plus && !plus.disabled, 'первый вариант должен быть доступен');
+    plus.click();
+    assert.equal(w.eval('ui.picks[0]'), 1);
+
+    const take = [...w.document.querySelectorAll('#effect-slot .act')].find(b => b.textContent.includes('Взять'));
+    const before = w.eval('S().revision');
+    take.click();
+    assert.ok(w.eval('S().revision') > before, 'компенсация не применилась');
+    assert.deepEqual(errors, []);
+  } finally { close(); }
+});

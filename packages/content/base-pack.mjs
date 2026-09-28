@@ -2,6 +2,7 @@
 // Каталог остаётся источником истины: здесь нет ни одного числа, введённого вручную.
 // Пакет НЕ является сверенной оригинальной колодой — см. docs/06-base-archive.md.
 import { userBaseCatalog } from './user-base-catalog.mjs';
+import { universityCards, auctionManagers, deferredManagers } from './interbellum.mjs';
 
 const GROUP_LABEL = { oil: 'Нефть', metal: 'Металл', mine: 'Шахта' };
 
@@ -53,6 +54,10 @@ export const basePack = {
   startupId: startupIds[0],   // совместимость: один стартовый на всех
   startupIds,                 // разные стартовые предприятия, как в правилах
   capitalists: capitalistCards,
+  // Модуль «Интербеллума»: университеты и жетоны управляющих.
+  universities: universityCards,
+  managers: auctionManagers,
+  deferredManagers,
   definitions,
   deck,
   // Инвентарь: чего не хватает до полной базовой коробки.

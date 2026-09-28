@@ -128,6 +128,34 @@ function cardNode(card, { owner = null, lot = null, mode = 'view' } = {}) {
   return node;
 }
 
+const MANAGERS = Object.fromEntries(PACK.managers.map(m => [m.id, m]));
+
+/* ---------- карта университета: иллюстраций нет, рисуем значения ---------- */
+function tableNode(lot) {
+  const s = S();
+  const node = el('div', 'card university');
+  node.dataset.lot = lot.id;
+  const face = el('div', 'card-face uni-face');
+  face.innerHTML = `
+    <div class="uni-head">Университет</div>
+    <div class="uni-note">Компенсацию можно разделить между двумя вариантами</div>
+    <div class="uni-opt"><span class="uni-key">либо</span><span class="recipe">${effectHtml(lot.table.options[0])}</span></div>
+    <div class="uni-opt"><span class="uni-key">либо</span><span class="recipe">${effectHtml(lot.table.options[1])}</span></div>
+    <div class="uni-token">${lot.token
+      ? `<b>Жетон управляющего</b><br>${esc(MANAGERS[lot.token].text)}`
+      : '<b>Жетон уже забрали</b>'}</div>`;
+  node.append(face);
+  if (lot.bids.length) {
+    const pile = el('div', 'bid-pile');
+    pile.innerHTML = lot.bids.map(b => {
+      const p = s.players.find(x => x.id === b.playerId);
+      return discHtml({ id: b.discId, value: b.value, kind: b.kind, bonus: b.bonus }, p.seat, { small: true });
+    }).join('');
+    node.append(pile);
+  }
+  return node;
+}
+
 /* ---------- расчёт ставки: главный элемент интерфейса ---------- */
 function ledgerNode(lot) {
   const s = S(), p = me();
@@ -141,6 +169,17 @@ function ledgerNode(lot) {
     return box;
   }
   const err = bidError(s, p.id, disc.id, lot.id, value);
+  if (lot.kind === 'university') {
+    const units = value + (p.ability === 'compensation-plus-one' ? 1 : 0);
+    box.innerHTML = `
+      <div class="ledger-head">СТАВКА ${value} НА УНИВЕРСИТЕТ</div>
+      <div class="ledger-row win"><span class="ledger-key">Выиграете</span>
+        <span class="ledger-val">жетон управляющего: ${lot.token ? esc(MANAGERS[lot.token].text) : 'уже забран'}</span></div>
+      <div class="ledger-row lose"><span class="ledger-key">Проиграете</span>
+        <span class="ledger-val"><b>${units}</b> единиц компенсации, делите между двумя вариантами карты</span></div>`;
+    if (err) box.append(el('div', 'ledger-note', `<em>${esc(err)}</em>`));
+    return box;
+  }
   const out = bidOutcome(s, DEFS, p.id, lot.id, value);
   const d = DEFS[lot.card.definitionId];
   const compText = out.compensation.kind === 'gain'
@@ -229,7 +268,7 @@ function renderStage() {
       : `<h2>РАЗБОР ЛОТОВ</h2><span>осталось ${open} — сначала компенсации, потом карта</span>`;
 
     s.lots.forEach((lot, i) => {
-      const node = cardNode(lot.card, { lot });
+      const node = lot.kind === 'university' ? tableNode(lot) : cardNode(lot.card, { lot });
       const current = s.phase === 'settlement' && i === s.settlement.index;
       if (lot.resolved) node.classList.add('dim');
       if (current) node.classList.add('lifted');
@@ -309,6 +348,8 @@ function renderBoard() {
       <span class="you-name" style="color:${seat.lite}">${esc(p.name)}</span>
       ${cap ? `<button class="you-cap" data-cap="${cap.id}">${esc(cap.name)}</button>` : ''}
     </span>
+    ${p.managers.length ? `<span class="managers" title="Жетоны управляющих">${
+      p.managers.map(id => `<span class="token" title="${esc(MANAGERS[id].text)}">У</span>`).join('')}</span>` : ''}
     <span class="vault">
       ${resHtml('money', p.wallet.money, { keepZero: true })}
       ${['coal', 'metal', 'oil', 'upgrade'].map(k => resHtml(k, p.wallet[k], { keepZero: true })).join('')}
@@ -458,6 +499,41 @@ function counterPanel({ title, steps, stepIndex, effect, max, onRun, onSkip, run
   return box;
 }
 
+/** Компенсация университета: единицы делятся между двумя вариантами. */
+function splitPanel(pending, p) {
+  const box = el('div', 'effect');
+  if (!Array.isArray(ui.picks) || ui.picks.length !== pending.options.length) ui.picks = pending.options.map(() => 0);
+  const used = ui.picks.reduce((a, b) => a + b, 0);
+  const left = pending.limit - used;
+
+  box.append(el('div', 'effect-head',
+    `<span>Компенсация университета — распределите <b>${pending.limit}</b></span>`));
+  pending.options.forEach((e, i) => {
+    const row = el('div', 'counter');
+    const minus = el('button', '', '−'), plus = el('button', '', '+');
+    const val = el('span', 'times', ui.picks[i]);
+    // Вариант-обмен ограничен ещё и запасом: считаем, хватит ли на следующее применение.
+    const afford = e.kind === 'gain' || canPay(p.wallet, e.cost, ui.picks[i] + 1);
+    minus.disabled = ui.picks[i] <= 0;
+    plus.disabled = left <= 0 || !afford;
+    minus.onclick = () => { ui.picks[i]--; render(); };
+    plus.onclick = () => { ui.picks[i]++; render(); };
+    row.append(minus, val, plus, el('span', 'recipe', effectHtml(e)));
+    if (e.kind === 'convert' && !afford && left > 0) row.append(el('span', 'cap', 'не хватает сырья'));
+    box.append(row);
+  });
+
+  const actions = el('div', 'counter');
+  actions.append(el('span', 'cap', left ? `осталось распределить: ${left}` : 'всё распределено'));
+  const run = el('button', 'act', 'Взять компенсацию');
+  run.onclick = () => { const picks = ui.picks; ui.picks = null; act({ type: 'Compensate', picks }); };
+  const skip = el('button', 'act ghost', 'Отказаться');
+  skip.onclick = () => { ui.picks = null; act({ type: 'Compensate', picks: pending.options.map(() => 0) }); };
+  actions.append(run, skip);
+  box.append(actions);
+  return box;
+}
+
 function renderEffect() {
   const s = S(), p = me(), slot = $('#effect-slot');
   slot.innerHTML = '';
@@ -465,14 +541,15 @@ function renderEffect() {
   if (s.phase === 'settlement') {
     const pending = s.settlement.pending;
     if (!pending || pending.playerId !== p.id) return;
-    const e = pending.effect;
+    if (pending.options.length > 1) { slot.append(splitPanel(pending, p)); return; }
+    const e = pending.options[0];
     let max = 0;
     for (let t = pending.limit; t >= 1; t--) if (canPay(p.wallet, e.cost, t)) { max = t; break; }
     slot.append(counterPanel({
       title: 'Компенсация за проигранный лот', effect: e, max,
       runLabel: 'Применить', skipLabel: 'Отказаться',
-      onRun: times => act({ type: 'Compensate', times }),
-      onSkip: () => act({ type: 'Compensate', times: 0 }),
+      onRun: times => act({ type: 'Compensate', picks: [times] }),
+      onSkip: () => act({ type: 'Compensate', picks: [0] }),
     }));
     return;
   }
@@ -606,6 +683,9 @@ const LOG_TEXT = {
   CompensationChosen: (e, n) => `<b>${n(e.playerId)}</b> применяет компенсацию ×${e.times}`,
   CardWon: (e, n) => `<b>${n(e.playerId)}</b> забирает «${DEFS[e.definitionId].name}» за ${e.value}`,
   CardDiscarded: () => 'Лот никто не взял',
+  ManagerWon: (e, n) => `<b>${n(e.playerId)}</b> забирает жетон управляющего за ${e.value}`,
+  ManagerDiscarded: () => 'На университет не поставили — жетон сброшен',
+  AgentTookManager: () => 'Жетон управляющего достался агенту и выбыл',
   PlanningStarted: () => 'Расстановка линий',
   PlanConfirmed: (e, n) => `<b>${n(e.playerId)}</b> принял план`,
   ProductionStarted: () => 'Производство',
@@ -764,7 +844,8 @@ function openSetup() {
     try {
       const state = createGame({
         names, seed: (Date.now() ^ (Math.random() * 1e9)) >>> 0,
-        variableCapital: field('variable').checked,
+        universities: field('universities').checked,
+      variableCapital: field('variable').checked,
         productionChain: field('chain').checked,
         capitalists: field('capitalists').checked,
       }, PACK);

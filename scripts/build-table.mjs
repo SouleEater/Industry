@@ -16,6 +16,7 @@ const MODULES = [
   'packages/domain/agent.mjs',
   'packages/domain/engine.mjs',
   'packages/content/user-base-catalog.mjs',
+  'packages/content/interbellum.mjs',
   'packages/content/base-pack.mjs',
 ];
 

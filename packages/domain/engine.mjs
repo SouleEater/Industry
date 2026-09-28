@@ -32,7 +32,7 @@ function owned(p, id) {
 function phase(s, name) { requireRule(s.phase === name, 'WRONG_PHASE', 'Это действие недоступно в текущей фазе.'); }
 function actor(s, id) { requireRule(currentActor(s) === id, 'NOT_YOUR_TURN', 'Сейчас действует другой игрок.'); }
 
-export function createGame({ names = ['Игрок 1', 'Игрок 2', 'Игрок 3'], variableCapital = false, seed = 2026, planning = true, productionChain = false, turnSeconds = 0, capitalists = false, pairedExtraDisc = false } = {}, pack) {
+export function createGame({ names = ['Игрок 1', 'Игрок 2', 'Игрок 3'], variableCapital = false, seed = 2026, planning = true, productionChain = false, turnSeconds = 0, capitalists = false, pairedExtraDisc = false, universities = false } = {}, pack) {
   requireRule(Array.isArray(names) && [2, 3, 4].includes(names.length), 'UNSUPPORTED_CONFIG', 'Поддерживаются 2, 3 или 4 игрока.');
   requireRule(names.every(n => typeof n === 'string' && n.trim().length > 0 && n.length <= 40), 'INVALID_NAME', 'Имя должно содержать от 1 до 40 символов.');
   requireRule(typeof variableCapital === 'boolean' && integer(seed) && seed <= 0xffffffff, 'INVALID_CONFIG', 'Некорректная настройка партии.');
@@ -40,6 +40,7 @@ export function createGame({ names = ['Игрок 1', 'Игрок 2', 'Игро�
   requireRule(integer(turnSeconds) && turnSeconds <= 3600, 'INVALID_CONFIG', 'Таймер: 0 (выключен) или 1–3600 секунд.');
   requireRule(typeof capitalists === 'boolean', 'INVALID_CONFIG', 'Промышленники включаются или выключаются.');
   requireRule(typeof pairedExtraDisc === 'boolean', 'INVALID_CONFIG', 'Парная двойка включается или выключается.');
+  requireRule(typeof universities === 'boolean', 'INVALID_CONFIG', 'Университеты включаются или выключаются.');
   requireRule(pack && typeof pack.version === 'string' && Array.isArray(pack.deck), 'INVALID_PACK', 'Не указан контент-пакет.');
   for (const d of Object.values(pack.definitions)) {
     requireRule(['company', 'startup'].includes(d.kind), 'INVALID_PACK', 'Неизвестный тип карты.');
@@ -72,22 +73,43 @@ export function createGame({ names = ['Игрок 1', 'Игрок 2', 'Игро�
     const roll = shuffle(pack.capitalists, rng); rng = roll.seed;
     abilities = roll.items.slice(0, names.length);
   }
+  // Университеты: на 1–3 игроков две случайные карты, на 4–5 — все три (правила дополнения, стр. 6).
+  let tables = [], managerDeck = [];
+  if (universities) {
+    requireRule(Array.isArray(pack.universities) && pack.universities.length >= 3,
+      'INVALID_PACK', 'В пакете нет карт университетов.');
+    requireRule(Array.isArray(pack.managers) && pack.managers.length > 0,
+      'INVALID_PACK', 'В пакете нет жетонов управляющих.');
+    const pick = shuffle(pack.universities, rng); rng = pick.seed;
+    const count = humans >= 4 ? 3 : 2;
+    tables = pick.items.slice(0, count).map(card => {
+      const side = shuffle(card.sides, rng); rng = side.seed;
+      const face = side.items[0];
+      face.options.forEach(e => validateEffect(e, true));
+      return { id: card.id, sideId: face.id, options: face.options };
+    });
+    const deck = shuffle(pack.managers.map(m => m.id), rng); rng = deck.seed;
+    managerDeck = deck.items;
+    requireRule(managerDeck.length >= tables.length * 4, 'SHORT_MANAGERS',
+      'Жетонов управляющих не хватит на четыре раунда.');
+  }
   // Колода должна закрыть хотя бы первый раунд. Если на четыре раунда её не хватает,
   // невыкупленные лоты возвращаются в колоду — это временная мера для неполного каталога.
   requireRule(pack.deck.length >= lotsPerRound, 'SHORT_DECK', 'Недостаточно карт даже на один раунд.');
   pack.deck.forEach(id => requireRule(definition(pack.definitions, id).kind === 'company', 'INVALID_PACK', 'В колоде должна быть карта предприятия.'));
   const s = { schemaVersion: 1, rulesVersion: RULES_VERSION, contentVersion: pack.version,
-    revision: 0, config: { variableCapital, planning, productionChain, turnSeconds, capitalists, pairedExtraDisc, deckCoversGame: pack.deck.length >= lotsPerRound * 4 },
+    revision: 0, config: { variableCapital, planning, productionChain, turnSeconds, capitalists, pairedExtraDisc, universities, deckCoversGame: pack.deck.length >= lotsPerRound * 4 },
     rng, round: 1, firstPlayer: 0, turn: 0,
     phase: 'auction', deck: pack.deck.map((definitionId, i) => ({ id: `c${i}`, definitionId, upgraded: false, usedRound: 0 })),
     players: names.map((name, i) => ({ id: `p${i}`, name: name.trim(), seat: i,
       ability: abilities[i]?.ability ?? null, capitalistId: abilities[i]?.id ?? null,
       wallet: { ...emptyWallet(), ...starts[i].starting, coal: (starts[i].starting.coal ?? 0) + Number(variableCapital) },
       cards: [{ id: `start${i}`, definitionId: startIds[i], upgraded: false, usedRound: 0 }],
-      discs: [], blocked: false, done: false, repeated: false })),
-    lots: [], discard: [], settlement: null, production: null, pendingPair: null, events: [] };
+      discs: [], managers: [], blocked: false, done: false, repeated: false })),
+    lots: [], discard: [], settlement: null, production: null, pendingPair: null,
+    tables, managerDeck, managerDiscard: [], events: [] };
   if (withAgent) s.players.push({ id: 'agent', name: 'Агент', agent: true, seat: s.players.length, ability: null, capitalistId: null,
-    wallet: emptyWallet(), cards: [], discs: [], blocked: false, done: false, repeated: false, lockedOrder: [], planned: false });
+    wallet: emptyWallet(), cards: [], discs: [], managers: [], blocked: false, done: false, repeated: false, lockedOrder: [], planned: false });
   s.config.agent = withAgent;
   event(s, 'GameStarted', withAgent ? { agent: true } : {}); startAuction(s); return s;
 }
@@ -102,7 +124,13 @@ function startAuction(s) {
     event(s, 'DeckRefilled');
   }
   const shuffled = shuffle(s.deck, s.rng); s.deck = shuffled.items; s.rng = shuffled.seed;
-  s.lots = s.deck.splice(0, Math.min(count, s.deck.length)).map((card, i) => ({ id: `r${s.round}l${i}`, card, bids: [], resolved: false }));
+  s.lots = s.deck.splice(0, Math.min(count, s.deck.length))
+    .map((card, i) => ({ id: `r${s.round}l${i}`, kind: 'company', card, bids: [], resolved: false }));
+  // Университеты лежат в самом конце ряда и разбираются последними (правила дополнения, стр. 7).
+  s.tables.forEach((table, i) => {
+    const token = s.managerDeck.shift() ?? null;
+    s.lots.push({ id: `r${s.round}u${i}`, kind: 'university', table, token, bids: [], resolved: false });
+  });
   for (const p of s.players) {
     p.lockedOrder = p.cards.map(c => c.id); p.planned = false;
     p.discs = [1, 2, 3, 4].map(value => ({ id: `fixed${value}`, kind: 'fixed', value, used: false }));
@@ -214,20 +242,38 @@ function resolveLot(s, defs) {
     const losers = lot.bids.filter(b => b !== win).sort((a, b) => a.value - b.value);
     flow.queue = win ? [...losers, win] : [];
   }
-  const losers = flow.queue.slice(0, -1), effect = definition(defs, lot.card.definitionId).compensation;
+  const losers = flow.queue.slice(0, -1);
+  const options = lot.kind === 'university'
+    ? lot.table.options
+    : [definition(defs, lot.card.definitionId).compensation];
   while (flow.cursor < losers.length) {
     const bid = losers[flow.cursor], p = player(s, bid.playerId), units = compensationUnits(p, bid.value);
+    const choice = options.length > 1;   // университет: два варианта, выбор всегда за игроком
+    const single = options[0];
     if (isAgent(p)) {
       event(s, 'Compensation', { playerId: p.id, lotId: lot.id, times: 0, agent: true }); flow.cursor++;
-    } else if (effect.kind === 'gain') {
-      transfer(p.wallet, {}, effect.gain, units);
-      event(s, 'Compensation', { playerId: p.id, lotId: lot.id, gain: effect.gain, times: units }); flow.cursor++;
-    } else if (units === 0 || !canPay(p.wallet, effect.cost)) {
+    } else if (units === 0) {
       event(s, 'Compensation', { playerId: p.id, lotId: lot.id, times: 0 }); flow.cursor++;
-    } else { flow.pending = { playerId: p.id, effect, limit: units }; return; }
+    } else if (!choice && single.kind === 'gain') {
+      transfer(p.wallet, {}, single.gain, units);
+      event(s, 'Compensation', { playerId: p.id, lotId: lot.id, gain: single.gain, times: units }); flow.cursor++;
+    } else if (!choice && !canPay(p.wallet, single.cost)) {
+      event(s, 'Compensation', { playerId: p.id, lotId: lot.id, times: 0 }); flow.cursor++;
+    } else { flow.pending = { playerId: p.id, lotId: lot.id, options, limit: units }; return; }
   }
   const winner = flow.queue.at(-1);
-  if (winner && isAgent(player(s, winner.playerId))) {
+  if (lot.kind === 'university') {
+    // Карта университета остаётся в ряду, победитель забирает с неё жетон управляющего.
+    if (!winner) {
+      if (lot.token) { s.managerDiscard.push(lot.token); event(s, 'ManagerDiscarded', { token: lot.token }); }
+    } else if (isAgent(player(s, winner.playerId))) {
+      if (lot.token) { s.managerDiscard.push(lot.token); event(s, 'AgentTookManager', { token: lot.token }); }
+    } else if (lot.token) {
+      player(s, winner.playerId).managers.push(lot.token);
+      event(s, 'ManagerWon', { playerId: winner.playerId, token: lot.token, value: winner.value });
+    }
+    lot.token = null;
+  } else if (winner && isAgent(player(s, winner.playerId))) {
     s.discard.push(lot.card);
     event(s, 'AgentTookCard', { cardId: lot.card.id, definitionId: lot.card.definitionId, value: winner.value });
   } else if (winner) {
@@ -306,8 +352,23 @@ export function dispatch(state, command, defs) {
     case 'Compensate': {
       phase(s, 'settlement'); const flow = s.settlement, choice = flow.pending;
       requireRule(choice, 'NO_CHOICE', 'Нет ожидаемой компенсации.');
-      convert(s, p, choice.effect, command.times, choice.limit, { context: 'compensation' });
-      event(s, 'CompensationChosen', { playerId: p.id, times: command.times });
+      // picks[i] — сколько единиц отдано i-му варианту. У обычного предприятия вариант один,
+      // у университета их два и игрок делит единицы как хочет (правила дополнения, стр. 7).
+      const picks = command.picks ?? [command.times ?? 0];
+      requireRule(Array.isArray(picks) && picks.length === choice.options.length && picks.every(n => integer(n)),
+        'INVALID_COUNT', 'Укажите, сколько раз применить каждый вариант компенсации.');
+      const total = picks.reduce((a, b) => a + b, 0);
+      requireRule(total <= choice.limit, 'INVALID_COUNT', 'Единиц компенсации меньше, чем вы распределили.');
+      choice.options.forEach((effect, i) => {
+        if (!picks[i]) return;
+        if (effect.kind === 'gain') {
+          transfer(p.wallet, {}, effect.gain, picks[i]);
+          event(s, 'Compensation', { playerId: p.id, lotId: choice.lotId, gain: effect.gain, times: picks[i] });
+        } else {
+          convert(s, p, effect, picks[i], choice.limit, { context: 'compensation' });
+        }
+      });
+      event(s, 'CompensationChosen', { playerId: p.id, picks: [...picks] });
       flow.pending = null; flow.cursor++; resolveLot(s, defs); break;
     }
     case 'ArrangeCards': {
