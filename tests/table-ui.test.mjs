@@ -259,3 +259,89 @@ test('компенсацию университета можно раздели�
     assert.deepEqual(errors, []);
   } finally { close(); }
 });
+
+test('управляющего ставят в планировании и применяют в производстве', ready, async () => {
+  const { w, errors, close } = await open();
+  try {
+    const form = w.document.querySelector('#setup-form');
+    form.querySelectorAll('.pname').forEach((input, i) => { input.value = ['Аня', 'Борис', 'Вика'][i]; });
+    form.querySelector('[name=count]').value = '3';
+    form.querySelector('[name=universities]').checked = true;
+    form.dispatchEvent(new w.Event('submit', { cancelable: true, bubbles: true }));
+
+    // выдаём первому игроку жетон «модернизировать за металл» и доводим до планирования
+    const ready2 = w.eval(`
+      (function () {
+        let guard = 0, offset = 0;
+        while (S().phase === 'auction' && guard++ < 300) {
+          const s = S(), me = s.players.find(x => x.id === currentActor(s));
+          let placed = false;
+          outer: for (const d of me.discs) { if (d.used) continue;
+            for (let i = 0; i < s.lots.length; i++) {
+              const l = s.lots[(i + offset) % s.lots.length];
+              if (!bidError(s, me.id, d.id, l.id, d.value)) {
+                act({ type: 'Bid', discId: d.id, lotId: l.id }, true); placed = true; offset++; break outer; } } }
+          if (!placed) break;
+        }
+        guard = 0;
+        while (S().phase === 'settlement' && guard++ < 400) {
+          const pend = S().settlement.pending;
+          act(pend ? { type: 'Compensate', picks: pend.options.map(() => 0) } : { type: 'ResolveLot' }, true);
+        }
+        if (S().phase !== 'planning') return 'фаза ' + S().phase;
+        const p = S().players.find(x => x.id === currentActor(S()));
+        if (!p.managers.includes('upgrade-for-metal')) p.managers.push('upgrade-for-metal');
+        p.wallet.metal = 5;
+        ui.seat = null; render();
+        return 'ok';
+      })();`);
+    assert.equal(ready2, 'ok', 'не дошли до планирования');
+
+    const pick = w.document.querySelector('#line-strip .mgr-pick');
+    assert.ok(pick, 'в планировании должен быть выбор управляющего для предприятия');
+    const option = [...pick.options].find(o => o.value === 'upgrade-for-metal');
+    assert.ok(option, 'выигранный жетон должен быть в списке');
+    pick.value = 'upgrade-for-metal';
+    pick.dispatchEvent(new w.Event('change'));
+    assert.equal(w.eval('S().players.find(x => x.id === currentActor(S())).cards.some(c => c.manager === "upgrade-for-metal")'), true,
+      'жетон не лёг на карту');
+    assert.deepEqual(errors, []);
+  } finally { close(); }
+});
+
+test('панель управляющего называет действие и применяет его', ready, async () => {
+  const { w, errors, close } = await open();
+  try {
+    const form = w.document.querySelector('#setup-form');
+    form.querySelectorAll('.pname').forEach((input, i) => { input.value = ['Аня', 'Борис', 'Вика'][i]; });
+    form.querySelector('[name=count]').value = '3';
+    form.querySelector('[name=universities]').checked = true;
+    form.dispatchEvent(new w.Event('submit', { cancelable: true, bubbles: true }));
+
+    const staged = w.eval(`
+      (function () {
+        const s = S(), p = s.players[0];
+        const id = PACK.deck.find(x => DEFS[x].advanced.length > 0);
+        p.cards.push({ id: 'ui-card', definitionId: id, upgraded: false, usedRound: 0, manager: 'upgrade-for-metal', local: null });
+        p.managers.push('upgrade-for-metal');
+        p.wallet.metal = 5; p.wallet.coal = 5;
+        s.phase = 'production'; s.turn = 0; s.production = { active: null };
+        ui.seat = null;
+        act({ type: 'UseCard', cardId: 'ui-card' }, true);
+        render();
+        return S().production.active ? 'ok' : 'карта завершилась сразу';
+      })();`);
+    assert.equal(staged, 'ok', staged);
+
+    const panel = w.document.querySelector('#effect-slot .manager-step');
+    assert.ok(panel, 'панель управляющего не показана');
+    const btn = [...panel.querySelectorAll('button')].find(b => b.textContent.includes('Улучшить'));
+    assert.ok(btn && !btn.disabled, `кнопка недоступна: ${[...panel.querySelectorAll('button')].map(b => b.textContent)}`);
+    btn.click();
+    assert.equal(w.eval('S().players[0].cards.find(c => c.id === "ui-card").upgraded'), true,
+      'нажатие не улучшило предприятие');
+    w.eval('render()');
+    assert.equal(w.document.querySelector('#effect-slot .manager-step'), null, 'панель должна исчезнуть после применения');
+    assert.deepEqual(errors, []);
+  } finally { close(); }
+});

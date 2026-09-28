@@ -108,6 +108,14 @@ function cardNode(card, { owner = null, lot = null, mode = 'view' } = {}) {
   img.loading = 'lazy';
   face.append(img);
 
+  if (card.manager) {
+    const tag = el('span', 'card-tag mgr', 'управляющий');
+    tag.title = MANAGERS[card.manager].text;
+    face.append(tag);
+  }
+  if (card.local && Object.values(card.local).some(v => v > 0))
+    face.append(el('span', 'card-tag local', `на карте: ${Object.entries(card.local)
+      .filter(([, v]) => v > 0).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(', ')}`));
   if (card.upgraded) face.append(el('span', 'card-tag up', 'улучшено'));
   else if (d.kind === 'startup') face.append(el('span', 'card-tag', 'стартовое'));
   if (d.unknownLimit) {
@@ -534,6 +542,36 @@ function splitPanel(pending, p) {
   return box;
 }
 
+/** Применяемый управляющий доступен в любой момент использования карты. */
+function managerPanel(card, p) {
+  const s = S(), boost = PACK.managers.find(m => m.id === card.manager)?.effect;
+  const ordered = ['upgrade-self', 'discard-self', 'local-gain', 'local-choice'];
+  if (!boost || !ordered.includes(boost.kind) || s.production.active.managerUsed) return null;
+
+  const box = el('div', 'effect manager-step');
+  box.append(el('div', 'effect-head', '<span>Управляющий на этом предприятии</span>'));
+  box.append(el('div', 'ledger-note', esc(MANAGERS[card.manager].text)));
+  const row = el('div', 'counter');
+  if (boost.kind === 'local-choice') {
+    boost.options.forEach((option, i) => {
+      const btn = el('button', 'act', `Взять ${Object.entries(option).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(' и ')}`);
+      btn.onclick = () => act({ type: 'UseManager', option: i });
+      row.append(btn);
+    });
+  } else {
+    const label = boost.kind === 'upgrade-self' ? 'Улучшить это предприятие'
+      : boost.kind === 'discard-self' ? `Вывести предприятие и взять ${boost.gain.money} денег`
+        : `Взять ${Object.entries(boost.gain).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(' и ')} на карту`;
+    const btn = el('button', 'act', label);
+    if (boost.kind === 'upgrade-self')
+      btn.disabled = card.upgraded || !canPay(p.wallet, boost.cost) || DEFS[card.definitionId].kind !== 'company';
+    btn.onclick = () => act({ type: 'UseManager' });
+    row.append(btn);
+  }
+  box.append(row);
+  return box;
+}
+
 function renderEffect() {
   const s = S(), p = me(), slot = $('#effect-slot');
   slot.innerHTML = '';
@@ -559,8 +597,19 @@ function renderEffect() {
   if (!a) return;
   const card = p.cards.find(c => c.id === a.cardId), d = DEFS[card.definitionId];
   const list = [...d.effects, ...(card.upgraded ? d.advanced : [])];
+  const mgr = managerPanel(card, p);
+  if (mgr) slot.append(mgr);
   const e = list[a.index];
-  if (!e) return;
+  if (!e) {
+    // Строки кончились: остался только выбор по управляющему либо завершение карты.
+    const done = el('div', 'counter');
+    done.style.margin = '0 14px 10px';
+    const btn = el('button', 'act ghost', mgr ? 'Не применять управляющего' : 'Завершить предприятие');
+    btn.onclick = () => act({ type: 'NextEffect' });
+    done.append(btn);
+    slot.append(done);
+    return;
+  }
 
   if (e.kind === 'upgrade') {
     const box = el('div', 'effect upgrade-step');
@@ -631,6 +680,22 @@ function renderLine() {
     const node = cardNode(card, { owner: p });
     const used = card.usedRound === s.round;
 
+    if (planning && p.managers.length) {
+      const row = el('div', 'move-row mgr-row');
+      const free = p.managers.filter(t => !p.cards.some(c => c.manager === t && c.id !== card.id));
+      const pick = el('select', 'mgr-pick');
+      pick.innerHTML = `<option value="">без управляющего</option>` + free.map(t =>
+        `<option value="${t}" ${card.manager === t ? 'selected' : ''}>${esc(MANAGERS[t].text.slice(0, 44))}…</option>`).join('');
+      pick.title = card.manager ? MANAGERS[card.manager].text : 'Поставить жетон управляющего на это предприятие';
+      pick.onchange = () => {
+        const next = p.cards
+          .map(c => ({ cardId: c.id, token: c.id === card.id ? pick.value : c.manager }))
+          .filter(x => x.token);
+        act({ type: 'PlaceManagers', assignments: next });
+      };
+      node.append(pick);
+      node.append(row);
+    }
     if (planning) {
       node.classList.add('movable');
       const row = el('div', 'move-row');
@@ -684,6 +749,10 @@ const LOG_TEXT = {
   CardWon: (e, n) => `<b>${n(e.playerId)}</b> забирает «${DEFS[e.definitionId].name}» за ${e.value}`,
   CardDiscarded: () => 'Лот никто не взял',
   ManagerWon: (e, n) => `<b>${n(e.playerId)}</b> забирает жетон управляющего за ${e.value}`,
+  ManagersPlaced: (e, n) => e.count ? `<b>${n(e.playerId)}</b> расставляет управляющих: ${e.count}` : null,
+  ManagerBonus: (e, n) => `<b>${n(e.playerId)}</b> получает от управляющего ${Object.entries(e.gain).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(', ')}`,
+  ManagerSupplied: (e, n) => `<b>${n(e.playerId)}</b> кладёт на предприятие ${Object.entries(e.gain).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(', ')}`,
+  CardScrapped: (e, n) => `<b>${n(e.playerId)}</b> выводит предприятие из игры за ${e.gain.money} денег`,
   ManagerDiscarded: () => 'На университет не поставили — жетон сброшен',
   AgentTookManager: () => 'Жетон управляющего достался агенту и выбыл',
   PlanningStarted: () => 'Расстановка линий',
