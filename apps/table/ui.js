@@ -67,6 +67,9 @@ function bundleHtml(values, mult = 1) {
 }
 function effectHtml(e) {
   if (!e) return '';
+  if (e.kind === 'supply') return `<span class="bolt">⚡</span>${effectHtml(e.of)}<span class="cap">однократно</span>`;
+  if (['count-cards', 'operation-bonus', 'upgrade-next', 'text', 'permanent'].includes(e.kind))
+    return `<span>${esc(e.text ?? '')}</span>`;
   if (e.kind === 'upgrade') return `${bundleHtml({ coal: 1, upgrade: 1 })}<span class="to">→</span><span>модернизация</span>`;
   if (e.kind === 'gain') return bundleHtml(e.gain);
   const cap = e.limitUnknown ? '<span class="cap">кратность не напечатана</span>'
@@ -102,11 +105,24 @@ function cardNode(card, { owner = null, lot = null, mode = 'view' } = {}) {
   if (running) node.classList.add('running');
 
   const face = el('div', 'card-face');
-  const img = el('img');
-  img.src = src(faceKey(card));
-  img.alt = `${d.name}${card.upgraded ? ', улучшенная сторона' : ''}`;
-  img.loading = 'lazy';
-  face.append(img);
+  if (d.images.length) {
+    const img = el('img');
+    img.src = src(faceKey(card));
+    img.alt = `${d.name}${card.upgraded ? ', улучшенная сторона' : ''}`;
+    img.loading = 'lazy';
+    face.append(img);
+  } else {
+    // Карты «Интербеллума» идут без иллюстраций: правила и компоненты издателя
+    // защищены авторским правом, поэтому рисуем только значения.
+    face.classList.add('plain-face');
+    const rows = [...d.effects, ...(card.upgraded ? d.advanced : [])];
+    face.innerHTML = `
+      <div class="uni-head">${esc(d.name)}</div>
+      <div class="plain-comp"><span class="uni-key">компенсация</span><span class="recipe">${effectHtml(d.compensation)}</span></div>
+      <div class="plain-rows">${rows.map(r => `<div class="recipe">${effectHtml(r)}</div>`).join('')}</div>
+      ${card.upgraded ? '' : `<div class="plain-next"><span class="uni-key">после модернизации</span>${
+        d.advanced.map(r => `<div class="recipe dim-row">${effectHtml(r)}</div>`).join('')}</div>`}`;
+  }
 
   if (card.manager) {
     const tag = el('span', 'card-tag mgr', 'управляющий');
@@ -670,6 +686,27 @@ function renderEffect() {
     return;
   }
 
+  if (e.kind === 'upgrade-next') {
+    const box = el('div', 'effect upgrade-step');
+    box.append(el('div', 'effect-head', `<span>Модернизация соседа — строка ${a.index + 1} из ${list.length}</span>`));
+    box.append(el('div', 'ledger-note', esc(e.text)));
+    const idx = p.cards.findIndex(c => c.id === card.id), next = p.cards[idx + 1];
+    const row = el('div', 'counter');
+    const can = next && !next.upgraded && DEFS[next.definitionId].kind === 'company';
+    if (!next) row.append(el('span', 'cap', 'Это предприятие последнее в линии.'));
+    else if (!can) row.append(el('span', 'cap', `«${esc(DEFS[next.definitionId].name)}» улучшить нельзя.`));
+    else {
+      const btn = el('button', 'act', `Улучшить следующее: ${esc(DEFS[next.definitionId].name)}`);
+      btn.onclick = () => act({ type: 'UpgradeNext' });
+      row.append(btn);
+    }
+    const skip = el('button', 'act ghost', can ? 'Не улучшать' : 'Дальше');
+    skip.onclick = () => act({ type: 'NextEffect' });
+    row.append(skip);
+    box.append(row); slot.append(box);
+    return;
+  }
+
   if (e.kind === 'convert') {
     const room = e.limit - a.used;
     let max = 0;
@@ -771,6 +808,9 @@ const LOG_TEXT = {
   ManagersPlaced: (e, n) => e.count ? `<b>${n(e.playerId)}</b> расставляет управляющих: ${e.count}` : null,
   ManagerBonus: (e, n) => `<b>${n(e.playerId)}</b> получает от управляющего ${Object.entries(e.gain).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(', ')}`,
   ManagerSupplied: (e, n) => `<b>${n(e.playerId)}</b> кладёт на предприятие ${Object.entries(e.gain).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(', ')}`,
+  CountedCards: (e, n) => `<b>${n(e.playerId)}</b> считает подходящие предприятия: ${e.cards}`,
+  BonusArmed: (e, n) => `<b>${n(e.playerId)}</b> включает надбавку за операции с ресурсом`,
+  OperationBonus: (e, n) => `<b>${n(e.playerId)}</b> получает надбавку ${Object.entries(e.gain).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(', ')}`,
   SupplyTaken: (e, n) => `<b>${n(e.playerId)}</b> получает поставку: ${Object.entries(e.gain).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(', ')}`,
   SupplyOffered: (e, n) => `<b>${n(e.playerId)}</b> может разыграть поставку`,
   SupplyResolved: (e, n) => e.times ? `<b>${n(e.playerId)}</b> разыгрывает поставку ×${e.times}` : `<b>${n(e.playerId)}</b> отказывается от поставки`,
@@ -935,7 +975,8 @@ function openSetup() {
     try {
       const state = createGame({
         names, seed: (Date.now() ^ (Math.random() * 1e9)) >>> 0,
-        universities: field('universities').checked,
+        expansion: field('expansion').checked,
+      universities: field('universities').checked,
       variableCapital: field('variable').checked,
         productionChain: field('chain').checked,
         capitalists: field('capitalists').checked,
@@ -951,8 +992,10 @@ function openSetup() {
     form.querySelectorAll('.pname-row').forEach((row, i) => row.style.display = i < n ? '' : 'none');
     $('#deck-warn').style.display = n === 4 ? '' : 'none';
     $('#agent-note').style.display = n === 2 ? '' : 'none';
+    // С дополнением колода становится полной, костыль с возвратом лотов не нужен.
+    if (field('expansion').checked) $('#deck-warn').style.display = 'none';
   };
-  field('count').onchange = sync; sync();
+  field('count').onchange = sync; field('expansion').onchange = sync; sync();
   $('#setup').showModal();
 }
 

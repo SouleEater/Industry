@@ -180,16 +180,16 @@ test('поставка не может быть компенсацией', () =>
 });
 
 test('карты дополнения с одними поставками теперь описываются движком', () => {
-  const ready = interbellumCompanies.filter(c => {
-    const needs = companyNeeds(c);
-    return needs.length === 0 || (needs.length === 1 && needs[0] === 'supply');
-  });
-  assert.equal(ready.length, 13, 'три готовых плюс десять с поставками');
+  const ready = interbellumCompanies.filter(c => companyNeeds(c).length === 0);
+  assert.equal(ready.length, 24, 'все карты дополнения описываются движком');
+  assert.ok(interbellumCompanies.some(c => [...c.basic, ...c.advanced].some(r => r.kind === 'supply')),
+    'поставки в каталоге есть');
   // Все их строки — то, что движок уже умеет.
+  const known = ['gain', 'convert', 'count-cards', 'operation-bonus', 'upgrade-next', 'permanent', 'take-stored'];
   for (const c of ready) {
     for (const row of [c.compensation, ...c.basic, ...c.advanced]) {
       const e = row.kind === 'supply' ? row.of : row;
-      assert.ok(['gain', 'convert'].includes(e.kind), `${c.id}: строка вида ${e.kind}`);
+      assert.ok(known.includes(e.kind), `${c.id}: строка вида ${e.kind}`);
     }
   }
 });

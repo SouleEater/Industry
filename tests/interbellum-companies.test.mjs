@@ -98,13 +98,13 @@ test('поставки на обычной стороне — только до�
   }
 });
 
-test('текстовые и постоянные строки названы и снабжены пояснением', () => {
+test('текстовые и постоянные строки снабжены пояснением', () => {
+  const wordy = ['text', 'permanent', 'count-cards', 'operation-bonus', 'upgrade-next', 'take-stored'];
   for (const c of interbellumCompanies) {
     for (const row of rowsOf(c)) {
-      if (!['text', 'permanent'].includes(row.kind)) continue;
-      assert.ok(row.id, `${c.id}: строка без идентификатора`);
+      if (!wordy.includes(row.kind)) continue;
       assert.ok(row.text && row.text.length > 10, `${c.id}: строка без пояснения`);
-      assert.ok(row.needs, `${c.id}: строка должна быть помечена как нереализованная`);
+      if (row.kind === 'permanent') assert.ok(row.rule, `${c.id}: постоянный эффект без правила`);
     }
   }
 });
@@ -115,8 +115,8 @@ test('нереализованные механики перечислены я�
     const need = rowNeeds(row);
     if (need) kinds.add(need);
   }
-  assert.deepEqual([...kinds].sort(), ['permanent', 'supply', 'text'],
-    'появилась незадокументированная механика');
+  assert.deepEqual([...kinds].sort(), [],
+    'все механики карт дополнения реализованы');
 });
 
 test('карты разложены по тому, чего им не хватает', () => {
@@ -125,8 +125,7 @@ test('карты разложены по тому, чего им не хвата
     const key = companyNeeds(c).sort().join('+') || 'ready';
     (by[key] ??= []).push(c.id);
   }
-  assert.equal(by.ready?.length, 3, 'три карты играбельны уже сейчас');
-  assert.equal(by.supply?.length, 10, 'десяти картам нужны только поставки');
+  assert.equal(by.ready?.length, 24, 'все карты дополнения описываются движком');
   const total = Object.values(by).reduce((n, ids) => n + ids.length, 0);
   assert.equal(total, 24);
 });
@@ -134,21 +133,39 @@ test('карты разложены по тому, чего им не хвата
 test('карты с оговорками несут примечание', () => {
   // Два прочтения со скана неуверенные: одиночный значок переворота и строка
   // без синей подложки. Примечание обязано остаться, пока нет сверки.
-  // ib-06 и ib-05: устное описание владельца расходится с напечатанным, это должно быть видно.
-  for (const id of ['ib-05', 'ib-06']) {
-    const c = interbellumCompanies.find(x => x.id === id);
-    assert.ok(c.notes.length > 0, `${id}: потеряно примечание о расхождении`);
-    assert.match(c.notes.join(' '), /сверк/i);
-  }
+  // ib-05: печатное «за каждую продажу» и устное «за каждый металл» считают по-разному.
+  const five = interbellumCompanies.find(x => x.id === 'ib-05');
+  assert.match(five.notes.join(' '), /сверк/i, 'расхождение в единице счёта должно быть видно');
+  // ib-06 владелец подтвердил, расхождение снято.
+  const six = interbellumCompanies.find(x => x.id === 'ib-06');
+  assert.match(six.notes.join(' '), /подтвердил/);
+  assert.deepEqual(six.basic[0].gain, { coal: 2, money: 1 });
+  assert.equal(six.basic[0].limit, 2);
   // ib-19: прочтение опирается на решение владельца, а не на иконку.
   const nineteen = interbellumCompanies.find(x => x.id === 'ib-19');
   assert.match(nineteen.notes.join(' '), /Владелец коробки/);
-  assert.equal(nineteen.advanced[0].kind, 'upgrade-next-in-line');
+  assert.equal(nineteen.advanced[0].kind, 'upgrade-next');
 });
 
-test('каталог дополнения пока не подмешан в игровую колоду', async () => {
+test('карты дополнения известны движку, но в базовой колоде их нет', async () => {
   const { basePack } = await import('../packages/content/base-pack.mjs');
-  for (const c of interbellumCompanies)
-    assert.equal(Boolean(basePack.definitions[c.id]), false,
-      `${c.id} попал в колоду, хотя его механики ещё не реализованы`);
+  for (const c of interbellumCompanies) {
+    assert.ok(basePack.definitions[c.id], `${c.id}: нет определения`);
+    assert.equal(basePack.definitions[c.id].expansion, true, `${c.id}: не помечен как карта дополнения`);
+    assert.equal(basePack.deck.includes(c.id), false, `${c.id} попал в базовую колоду`);
+    assert.equal(basePack.expansionDeck.includes(c.id), true, `${c.id}: нет в колоде дополнения`);
+  }
+  assert.equal(basePack.expansionDeck.length, 24);
+});
+
+test('с дополнением колода закрывает четыре раунда даже вчетвером', async () => {
+  const { basePack } = await import('../packages/content/base-pack.mjs');
+  const { createGame } = await import('../packages/domain/engine.mjs');
+  const s = createGame({ names: ['А', 'Б', 'В', 'Г'], seed: 9, expansion: true }, basePack);
+  const total = s.deck.length + s.lots.filter(l => l.kind === 'company').length;
+  assert.equal(total, 48, '24 карты дополнения плюс 24 базовые');
+  assert.equal(s.config.deckCoversGame, true, 'возврат невыкупленных лотов больше не нужен');
+  const fromExpansion = [...s.deck, ...s.lots.filter(l => l.kind === 'company').map(l => l.card)]
+    .filter(c => c.definitionId.startsWith('ib-')).length;
+  assert.equal(fromExpansion, 24, 'все новые карты в колоде');
 });

@@ -17,6 +17,7 @@ const MODULES = [
   'packages/domain/engine.mjs',
   'packages/content/user-base-catalog.mjs',
   'packages/content/interbellum.mjs',
+  'packages/content/interbellum-companies.mjs',
   'packages/content/base-pack.mjs',
 ];
 
@@ -36,13 +37,41 @@ function collideCheck(chunks) {
   // Одинаковые имена верхнего уровня в классическом скрипте — это SyntaxError при загрузке.
   const seen = new Map();
   for (const { file, code } of chunks) {
-    for (const m of code.matchAll(/^(?:const|let|function|class)\s+([A-Za-z_$][\w$]*)/gm)) {
-      const name = m[1];
+    for (const name of topLevelNames(code)) {
       if (seen.has(name)) throw new Error(`Имя «${name}» объявлено дважды: ${seen.get(name)} и ${file}`);
       seen.set(name, file);
     }
   }
+  // Регулярка моделирует не весь синтаксис, поэтому последнее слово за разбором.
+  // Раньше «const a = 1, b = 2» проскакивало: второй идентификатор был не виден.
+  try {
+    new Function(chunks.map(c => c.code).join('\n'));
+  } catch (error) {
+    throw new Error(`Склеенные модули не разбираются: ${error.message}`);
+  }
   return seen.size;
+}
+
+/** Имена верхнего уровня, включая объявления вида «const a = 1, b = 2». */
+function topLevelNames(code) {
+  const names = [];
+  for (const line of code.split('\n')) {
+    const head = /^(const|let|var)\s+(.*)$/.exec(line);
+    if (head) {
+      // Берём идентификаторы, за которыми сразу идёт «=», на нулевой глубине скобок.
+      let depth = 0, buffer = '';
+      for (const ch of head[2]) {
+        if ('([{'.includes(ch)) depth++;
+        else if (')]}'.includes(ch)) depth--;
+        if (depth === 0) buffer += ch; else buffer += ' ';
+      }
+      for (const m of buffer.matchAll(/(?:^|,)\s*([A-Za-z_$][\w$]*)\s*=/g)) names.push(m[1]);
+      continue;
+    }
+    const other = /^(?:function|class)\s+([A-Za-z_$][\w$]*)/.exec(line);
+    if (other) names.push(other[1]);
+  }
+  return names;
 }
 
 const chunks = MODULES.map(file => ({ file, code: flatten(read(file), file) }));

@@ -1,4 +1,4 @@
-import { requireRule, emptyWallet, validateWallet, integer, canPay, transfer, shuffle, rankPlayers, classifyConversion, clone } from './rules.mjs';
+import { requireRule, emptyWallet, validateWallet, integer, canPay, transfer, shuffle, rankPlayers, classifyConversion, clone, RESOURCES } from './rules.mjs';
 import { ABILITIES, has, compensationUnits, upgradeCost, extraDisc, ignoresBidLimits, pickWinner } from './capitalists.mjs';
 import { isAgent, rollD6, chooseBid } from './agent.mjs';
 
@@ -7,7 +7,72 @@ function definition(definitions, id) {
   requireRule(Object.hasOwn(definitions, id), 'UNKNOWN_CARD', 'Неизвестная карта.');
   return definitions[id];
 }
+/** Активные строки указанной стороны карты, включая обёрнутые в поставку. */
+function activeRows(card, d) {
+  return [...d.effects, ...(card.upgraded ? d.advanced ?? [] : [])];
+}
+/**
+ * «За каждую вашу карту, где можете продать/обменять X» — считаются только карты,
+ * на которых нужный эффект активен, то есть напечатан полноцветным на текущей стороне
+ * (пояснения дополнения, стр. 11). Неактивные строги другой стороны не учитываются.
+ * Поставки считаются: на своей стороне они полноцветные.
+ */
+function countCardsWith(p, defs, on, resource) {
+  return p.cards.filter(card => activeRows(card, definition(defs, card.definitionId)).some(row => {
+    const e = row.kind === 'supply' ? row.of : row;
+    if (e.kind !== 'convert') return false;
+    if ((e.cost[resource] ?? 0) <= 0) return false;
+    const kinds = classifyConversion(e);
+    return on === 'sale' ? kinds.sale : kinds.exchange;
+  })).length;
+}
+
+/**
+ * Постоянные эффекты действуют с момента получения карты, включая фазу аукциона,
+ * но только с той стороны, которая сейчас лицевая. Возвращает карты игрока,
+ * на которых активен постоянный эффект с данным правилом.
+ */
+function permanentCards(p, defs, rule) {
+  return p.cards.filter(card => activeRows(card, definition(defs, card.definitionId))
+    .some(row => row.kind === 'permanent' && row.rule === rule));
+}
+/** Ресурсы, накопленные НА карте. В отличие от запаса управляющего, живут между раундами. */
+/** Постоянный эффект «кладите сюда каждый ресурс, потраченный на модернизацию». */
+function storeUpgradeCost(s, defs, p, cost) {
+  for (const card of permanentCards(p, defs, 'store-upgrade-cost')) {
+    const row = activeRows(card, definition(defs, card.definitionId)).find(r => r.rule === 'store-upgrade-cost');
+    const spent = cost[row.resource] ?? 0;
+    if (!spent) continue;
+    storeOnCard(card, row.resource, spent);
+    event(s, 'StoredOnCard', { playerId: p.id, cardId: card.id, resource: row.resource, amount: spent, reason: 'upgrade' });
+  }
+}
+function storeOnCard(card, resource, amount = 1) {
+  card.stored = { ...(card.stored ?? {}) };
+  card.stored[resource] = (card.stored[resource] ?? 0) + amount;
+}
+
 function validateEffect(e, compensation = false) {
+  if (e && e.kind === 'permanent') {
+    requireRule(!compensation, 'UNSUPPORTED_EFFECT', 'Постоянный эффект не бывает компенсацией.');
+    requireRule(['store-on-outbid', 'bonus-on-gain', 'extra-single-resource-sale', 'store-upgrade-cost'].includes(e.rule),
+      'UNSUPPORTED_EFFECT', 'Такой постоянный эффект ещё не поддерживается.');
+    return;
+  }
+  if (e && e.kind === 'take-stored') {
+    requireRule(!compensation, 'UNSUPPORTED_EFFECT', 'Такой эффект не бывает компенсацией.');
+    requireRule(RESOURCES.includes(e.resource), 'INVALID_EFFECT', 'Не указан ресурс.');
+    return;
+  }
+  if (e && ['count-cards', 'operation-bonus', 'upgrade-next'].includes(e.kind)) {
+    requireRule(!compensation, 'UNSUPPORTED_EFFECT', 'Такой эффект не бывает компенсацией.');
+    if (e.kind !== 'upgrade-next') {
+      validateWallet(e.gain);
+      requireRule(['sale', 'exchange'].includes(e.on), 'INVALID_EFFECT', 'Не указан вид операции.');
+      requireRule(RESOURCES.includes(e.resource), 'INVALID_EFFECT', 'Не указан ресурс.');
+    }
+    return;
+  }
   if (e && e.kind === 'supply') {
     requireRule(!compensation, 'UNSUPPORTED_EFFECT', 'Компенсация не может быть поставкой.');
     requireRule(e.of && ['gain', 'convert'].includes(e.of.kind), 'UNSUPPORTED_EFFECT', 'Поставка оборачивает добычу или переработку.');
@@ -38,7 +103,7 @@ function owned(p, id) {
 function phase(s, name) { requireRule(s.phase === name, 'WRONG_PHASE', 'Это действие недоступно в текущей фазе.'); }
 function actor(s, id) { requireRule(currentActor(s) === id, 'NOT_YOUR_TURN', 'Сейчас действует другой игрок.'); }
 
-export function createGame({ names = ['Игрок 1', 'Игрок 2', 'Игрок 3'], variableCapital = false, seed = 2026, planning = true, productionChain = false, turnSeconds = 0, capitalists = false, pairedExtraDisc = false, universities = false } = {}, pack) {
+export function createGame({ names = ['Игрок 1', 'Игрок 2', 'Игрок 3'], variableCapital = false, seed = 2026, planning = true, productionChain = false, turnSeconds = 0, capitalists = false, pairedExtraDisc = false, universities = false, expansion = false } = {}, pack) {
   requireRule(Array.isArray(names) && [2, 3, 4].includes(names.length), 'UNSUPPORTED_CONFIG', 'Поддерживаются 2, 3 или 4 игрока.');
   requireRule(names.every(n => typeof n === 'string' && n.trim().length > 0 && n.length <= 40), 'INVALID_NAME', 'Имя должно содержать от 1 до 40 символов.');
   requireRule(typeof variableCapital === 'boolean' && integer(seed) && seed <= 0xffffffff, 'INVALID_CONFIG', 'Некорректная настройка партии.');
@@ -58,6 +123,7 @@ export function createGame({ names = ['Игрок 1', 'Игрок 2', 'Игро�
   // Каждому своё стартовое предприятие, если пакет их даёт; иначе одно общее.
   let rng = seed >>> 0;
   const humans = names.length;
+  requireRule(typeof expansion === 'boolean', 'INVALID_CONFIG', 'Дополнение включается или выключается.');
   const withAgent = humans === 2;   // B16: вдвоём третьим участником садится агент базы
   const lotsPerRound = humans + 4 + Number(variableCapital);
   let startIds = names.map(() => pack.startupId);
@@ -102,21 +168,30 @@ export function createGame({ names = ['Игрок 1', 'Игрок 2', 'Игро�
   }
   // Колода должна закрыть хотя бы первый раунд. Если на четыре раунда её не хватает,
   // невыкупленные лоты возвращаются в колоду — это временная мера для неполного каталога.
-  requireRule(pack.deck.length >= lotsPerRound, 'SHORT_DECK', 'Недостаточно карт даже на один раунд.');
-  pack.deck.forEach(id => requireRule(definition(pack.definitions, id).kind === 'company', 'INVALID_PACK', 'В колоде должна быть карта предприятия.'));
+  // Колода дополнения: все 24 новые карты плюс случайные базовые (правила дополнения, стр. 6).
+  let deckIds = pack.deck;
+  if (expansion) {
+    requireRule(Array.isArray(pack.expansionDeck) && pack.expansionDeck.length > 0,
+      'INVALID_PACK', 'В пакете нет карт дополнения.');
+    const take = Math.min(pack.expansionBaseCount ?? 24, pack.deck.length);
+    const roll = shuffle(pack.deck, rng); rng = roll.seed;
+    deckIds = [...pack.expansionDeck, ...roll.items.slice(0, take)];
+  }
+  requireRule(deckIds.length >= lotsPerRound, 'SHORT_DECK', 'Недостаточно карт даже на один раунд.');
+  deckIds.forEach(id => requireRule(definition(pack.definitions, id).kind === 'company', 'INVALID_PACK', 'В колоде должна быть карта предприятия.'));
   const s = { schemaVersion: 1, rulesVersion: RULES_VERSION, contentVersion: pack.version,
-    revision: 0, config: { variableCapital, planning, productionChain, turnSeconds, capitalists, pairedExtraDisc, universities, deckCoversGame: pack.deck.length >= lotsPerRound * 4 },
+    revision: 0, config: { variableCapital, planning, productionChain, turnSeconds, capitalists, pairedExtraDisc, universities, expansion, deckCoversGame: deckIds.length >= lotsPerRound * 4 },
     rng, round: 1, firstPlayer: 0, turn: 0,
-    phase: 'auction', deck: pack.deck.map((definitionId, i) => ({ id: `c${i}`, definitionId, upgraded: false, usedRound: 0 })),
+    phase: 'auction', deck: deckIds.map((definitionId, i) => ({ id: `c${i}`, definitionId, upgraded: false, usedRound: 0, manager: null, local: null })),
     players: names.map((name, i) => ({ id: `p${i}`, name: name.trim(), seat: i,
       ability: abilities[i]?.ability ?? null, capitalistId: abilities[i]?.id ?? null,
       wallet: { ...emptyWallet(), ...starts[i].starting, coal: (starts[i].starting.coal ?? 0) + Number(variableCapital) },
       cards: [{ id: `start${i}`, definitionId: startIds[i], upgraded: false, usedRound: 0 }],
-      discs: [], managers: [], blocked: false, done: false, repeated: false })),
+      discs: [], managers: [], bonuses: [], blocked: false, done: false, repeated: false })),
     lots: [], discard: [], settlement: null, production: null, pendingPair: null,
     tables, managerDeck, managerDefs, managerDiscard: [], supplies: [], events: [] };
   if (withAgent) s.players.push({ id: 'agent', name: 'Агент', agent: true, seat: s.players.length, ability: null, capitalistId: null,
-    wallet: emptyWallet(), cards: [], discs: [], managers: [], blocked: false, done: false, repeated: false, lockedOrder: [], planned: false });
+    wallet: emptyWallet(), cards: [], discs: [], managers: [], bonuses: [], blocked: false, done: false, repeated: false, lockedOrder: [], planned: false });
   s.config.agent = withAgent;
   event(s, 'GameStarted', withAgent ? { agent: true } : {}); startAuction(s); return s;
 }
@@ -147,6 +222,7 @@ function startAuction(s) {
     if (extra) p.discs.push({ ...extra });
     if (s.config.variableCapital) p.discs.push({ id: 'variable', kind: 'variable', value: 0, used: false });
     p.blocked = false; p.repeated = false;
+    p.bonuses = [];   // надбавки от текстовых эффектов живут одну фазу производства
     // Агент не строит экономику (B17): фазы плана и производства он пропускает.
     p.done = isAgent(p); p.planned = isAgent(p);
   }
@@ -310,10 +386,20 @@ function operationFits(on, kinds) {
   return on === 'exchange' ? kinds.exchange : on === 'sale' ? kinds.sale : true;
 }
 /** Напечатанная кратность строки плюс прибавка от жетона «ещё один раз». */
-function effectLimit(s, card, effect) {
+function effectLimit(s, card, effect, p = null, defs = null) {
+  let limit = effect.limit;
+  const kinds = classifyConversion(effect);
   const boost = managerEffect(s, card);
-  if (boost?.kind !== 'extra-limit') return effect.limit;
-  return operationFits(boost.on, classifyConversion(effect)) ? effect.limit + boost.amount : effect.limit;
+  if (boost?.kind === 'extra-limit' && operationFits(boost.on, kinds)) limit += boost.amount;
+  // «Продающий только один вид ресурса» — слева от стрелки ровно один ресурс
+  // (пояснения дополнения, стр. 11).
+  if (p && defs && kinds.sale && Object.keys(effect.cost).length === 1) {
+    for (const holder of permanentCards(p, defs, 'extra-single-resource-sale')) {
+      const row = activeRows(holder, definition(defs, holder.definitionId)).find(r => r.rule === 'extra-single-resource-sale');
+      limit += row.amount ?? 1;
+    }
+  }
+  return limit;
 }
 /** Ресурсы жетона лежат на карте: тратятся раньше общего запаса и сгорают в конце. */
 function payWithLocal(card, wallet, cost, times) {
@@ -387,8 +473,38 @@ function automaticEffects(s, defs) {
       card.usedRound = s.round; card.local = null;
       event(s, 'CardCompleted', { playerId: p.id, cardId: a.cardId }); s.production.active = null; return;
     }
+    if (e.kind === 'count-cards') {
+      // Обязательная добыча: считаем подходящие карты и выдаём ресурс за каждую.
+      const n = countCardsWith(p, defs, e.on, e.resource);
+      if (n) transfer(p.wallet, {}, e.gain, n);
+      event(s, 'CountedCards', { playerId: p.id, cardId: a.cardId, cards: n, gain: e.gain });
+      a.index++; a.used = 0; continue;
+    }
+    if (e.kind === 'operation-bonus') {
+      // Включается в свою очередь и действует до конца фазы производства этого игрока.
+      p.bonuses.push({ on: e.on, resource: e.resource, gain: e.gain });
+      event(s, 'BonusArmed', { playerId: p.id, cardId: a.cardId, on: e.on, resource: e.resource });
+      a.index++; a.used = 0; continue;
+    }
+    if (e.kind === 'take-stored') {
+      const card = owned(p, a.cardId);
+      const amount = card.stored?.[e.resource] ?? 0;
+      if (amount) {
+        transfer(p.wallet, {}, { [e.resource]: amount });
+        card.stored = { ...card.stored, [e.resource]: 0 };
+      }
+      event(s, 'TookFromCard', { playerId: p.id, cardId: card.id, resource: e.resource, amount });
+      a.index++; a.used = 0; continue;
+    }
+    if (e.kind === 'permanent') { a.index++; a.used = 0; continue; }   // не разыгрывается в очереди
     if (e.kind !== 'gain') return;
-    transfer(p.wallet, {}, e.gain); event(s, 'ResourceGained', { playerId: p.id, cardId: a.cardId, gain: e.gain });
+    // Постоянный эффект «каждая ваша добыча этого ресурса приносит дополнительный».
+    let gain = e.gain;
+    for (const card of permanentCards(p, defs, 'bonus-on-gain')) {
+      const row = activeRows(card, definition(defs, card.definitionId)).find(r => r.rule === 'bonus-on-gain');
+      if ((gain[row.resource] ?? 0) > 0) gain = { ...gain, [row.resource]: gain[row.resource] + 1 };
+    }
+    transfer(p.wallet, {}, gain); event(s, 'ResourceGained', { playerId: p.id, cardId: a.cardId, gain });
     a.index++; a.used = 0;
   }
 }
@@ -413,7 +529,21 @@ export function dispatch(state, command, defs) {
       requireRule(!error, 'ILLEGAL_BID', error);
       const d = p.discs.find(d => d.id === command.discId), lot = s.lots.find(l => l.id === command.lotId);
       if (d.kind === 'variable') { transfer(p.wallet, { coal: command.value }); d.value = command.value; }
+      // Постоянный эффект «перебили вашу ставку»: смотрим, кто был наверху до нас.
+      const topBefore = lot.bids.length ? Math.max(...lot.bids.map(b => b.value)) : -1;
+      const leaders = lot.bids.filter(b => b.value === topBefore);
       d.used = true; lot.bids.push({ playerId: p.id, discId: d.id, kind: d.kind, value: d.value, bonus: Boolean(d.bonus) });
+      if (d.value > topBefore) {
+        for (const beaten of leaders) {
+          if (beaten.playerId === p.id) continue;
+          const victim = s.players.find(x => x.id === beaten.playerId);
+          for (const card of permanentCards(victim, defs, 'store-on-outbid')) {
+            const row = activeRows(card, definition(defs, card.definitionId)).find(r => r.rule === 'store-on-outbid');
+            storeOnCard(card, row.resource);
+            event(s, 'StoredOnCard', { playerId: victim.id, cardId: card.id, resource: row.resource, reason: 'outbid' });
+          }
+        }
+      }
       event(s, 'BidPlaced', { playerId: p.id, lotId: lot.id, value: d.value, discKind: d.kind, bonus: Boolean(d.bonus) });
       const bonus = p.discs.find(x => x.bonus);
       // Парная постановка — свойство ОБНОВЛЁННОЙ карты из «Интербеллума».
@@ -511,11 +641,18 @@ export function dispatch(state, command, defs) {
       requireRule(e?.kind === 'convert', 'WRONG_EFFECT', 'Сейчас не эффект переработки.');
       requireRule(integer(command.times, 1), 'INVALID_COUNT', 'Выберите хотя бы одну операцию или пропустите эффект.');
       const card = owned(p, a.cardId), boost = managerEffect(s, card), kinds = classifyConversion(e);
-      requireRule(command.times <= effectLimit(s, card, e) - a.used, 'INVALID_COUNT', 'Превышен лимит переработки.');
+      requireRule(command.times <= effectLimit(s, card, e, p, defs) - a.used, 'INVALID_COUNT', 'Превышен лимит переработки.');
       // Операции идут по одной: жетон оплачивает отдельную операцию и платит за каждую отдельно.
       for (let i = 0; i < command.times; i++) {
         const free = boost?.kind === 'free-operation' && a.freeLeft > 0 && operationFits(boost.on, kinds);
-        if (free) a.freeLeft--; else payWithLocal(card, p.wallet, e.cost, 1);
+        if (free) a.freeLeft--;
+        else if (e.from === 'card') {
+          // Строка тратит только то, что лежит на самой карте.
+          for (const [k, v] of Object.entries(e.cost))
+            requireRule((card.stored?.[k] ?? 0) >= v, 'INSUFFICIENT_RESOURCES', 'На карте не хватает ресурсов.');
+          card.stored = { ...card.stored };
+          for (const [k, v] of Object.entries(e.cost)) card.stored[k] -= v;
+        } else payWithLocal(card, p.wallet, e.cost, 1);
         transfer(p.wallet, {}, e.gain);
         event(s, 'ConversionPerformed', { playerId: p.id, cost: free ? {} : e.cost, gain: e.gain,
           ...kinds, cardId: a.cardId, context: 'production', free });
@@ -523,10 +660,32 @@ export function dispatch(state, command, defs) {
           transfer(p.wallet, {}, boost.gain);
           event(s, 'ManagerBonus', { playerId: p.id, cardId: card.id, gain: boost.gain, reason: boost.on });
         }
+        // Надбавки текстовых эффектов: «всякий раз, когда продаёте X, получайте ещё».
+        for (const bonus of p.bonuses) {
+          if (!operationFits(bonus.on, kinds)) continue;
+          if ((e.cost[bonus.resource] ?? 0) <= 0) continue;
+          transfer(p.wallet, {}, bonus.gain);
+          event(s, 'OperationBonus', { playerId: p.id, cardId: card.id, gain: bonus.gain, resource: bonus.resource });
+        }
       }
       a.used += command.times;
       a.usage[a.index] = (a.usage[a.index] ?? 0) + command.times;
       break;
+    }
+    case 'UpgradeNext': {
+      phase(s, 'production');
+      const e = activeEffect(s, defs);
+      requireRule(e?.kind === 'upgrade-next', 'WRONG_EFFECT', 'Сейчас не эффект модернизации соседа.');
+      const a = s.production.active;
+      const index = p.cards.findIndex(c => c.id === a.cardId);
+      const next = p.cards[index + 1];
+      requireRule(next, 'NO_NEXT_CARD', 'Это предприятие последнее в линии.');
+      requireRule(!next.upgraded && definition(defs, next.definitionId).kind === 'company',
+        'CANNOT_UPGRADE', 'Следующее предприятие улучшить нельзя.');
+      next.upgraded = true;
+      event(s, 'CardUpgraded', { playerId: p.id, cardId: next.id, byNeighbour: true });
+      triggerSupplies(s, defs, p, next, 'advanced');
+      a.index++; a.used = 0; automaticEffects(s, defs); break;
     }
     case 'TakeSupply': {
       const pending = s.supplies[0];
@@ -550,6 +709,7 @@ export function dispatch(state, command, defs) {
         requireRule(!card.upgraded && definition(defs, card.definitionId).kind === 'company', 'CANNOT_UPGRADE', 'Эту карту нельзя модернизировать.');
         payWithLocal(card, p.wallet, boost.cost, 1);
         card.upgraded = true;
+        storeUpgradeCost(s, defs, p, boost.cost);
         event(s, 'CardUpgraded', { playerId: p.id, cardId: card.id, byManager: true });
         triggerSupplies(s, defs, p, card, 'advanced');
       } else if (boost.kind === 'discard-self') {
@@ -581,7 +741,9 @@ export function dispatch(state, command, defs) {
       phase(s, 'production'); requireRule(activeEffect(s, defs)?.kind === 'upgrade', 'WRONG_EFFECT', 'Модернизация доступна только по эффекту.');
       const card = owned(p, command.cardId);
       requireRule(!card.upgraded && definition(defs, card.definitionId).kind === 'company', 'CANNOT_UPGRADE', 'Эту карту нельзя модернизировать.');
-      transfer(p.wallet, upgradeCost(p)); card.upgraded = true;
+      const cost = upgradeCost(p);
+      transfer(p.wallet, cost); card.upgraded = true;
+      storeUpgradeCost(s, defs, p, cost);
       event(s, 'CardUpgraded', { playerId: p.id, cardId: card.id });
       triggerSupplies(s, defs, p, card, 'advanced');
       break;

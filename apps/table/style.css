@@ -438,3 +438,17 @@ dialog::backdrop { background: rgba(4, 7, 10, .78); backdrop-filter: blur(3px); 
   background: #0d151c; border: 1px solid var(--rivet); color: var(--frost);
 }
 .mgr-pick:focus { outline: none; border-color: var(--upgrade); }
+.recipe .bolt { color: var(--brass); font-size: 15px; }
+
+/* карта дополнения без иллюстрации */
+.card-face.plain-face {
+  display: flex; flex-direction: column; gap: 6px; padding: 10px 9px;
+  background: linear-gradient(#2a2418, #1d1a12); border: 1px solid var(--edge);
+  color: var(--chalk); overflow: hidden;
+}
+.plain-face .uni-head { color: var(--brass); }
+.plain-comp { display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px; border-bottom: 1px dashed var(--rivet); }
+.plain-rows { display: flex; flex-direction: column; gap: 5px; }
+.plain-face .recipe { font-size: 11.5px; gap: 5px; }
+.plain-next { margin-top: auto; padding-top: 6px; border-top: 1px dashed var(--rivet); }
+.dim-row { opacity: .45; }

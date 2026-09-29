@@ -3,6 +3,7 @@
 // Пакет НЕ является сверенной оригинальной колодой — см. docs/06-base-archive.md.
 import { userBaseCatalog } from './user-base-catalog.mjs';
 import { universityCards, auctionManagers, deferredManagers } from './interbellum.mjs';
+import { interbellumCompanies } from './interbellum-companies.mjs';
 
 const GROUP_LABEL = { oil: 'Нефть', metal: 'Металл', mine: 'Шахта' };
 
@@ -47,6 +48,18 @@ const capitalistCards = userBaseCatalog.entries
   .filter(e => e.kind === 'capitalist')
   .map(e => ({ id: e.id, name: e.title, text: e.description, ability: e.ability, images: e.images, notes: e.notes }));
 
+// Предприятия дополнения в общем словаре определений: в базовую колоду они не входят,
+// но нужны, когда партия идёт с «Интербеллумом».
+for (const entry of interbellumCompanies) {
+  definitions[entry.id] = {
+    name: `Интербеллум ${entry.id.slice(3)}`,
+    kind: 'company', tone: 'coal',
+    compensation: entry.compensation,
+    effects: entry.basic, advanced: entry.advanced,
+    images: [], notes: entry.notes, officialVerified: false, expansion: true,
+  };
+}
+
 export const basePack = {
   version: `base-playable-from-${userBaseCatalog.version}`,
   provenance: 'user-supplied-layouts',
@@ -60,6 +73,13 @@ export const basePack = {
   deferredManagers,
   definitions,
   deck,
+  // Колода дополнения: 24 новые карты плюс 24 случайные базовые.
+  // Правила дополнения, подготовка, пункт0: полный вариант делит базовые карты
+  // на 12 стопок по иллюстрациям и берёт по две из каждой. Иллюстрации в каталоге
+  // не размечены, поэтому применяется разрешённое правилами упрощение — 24 случайные
+  // базовые карты, с оговоркой, что колода будет менее сбалансированной.
+  expansionDeck: interbellumCompanies.map(c => c.id),
+  expansionBaseCount: 24,
   // Инвентарь: чего не хватает до полной базовой коробки.
   expectedCompanies: userBaseCatalog.expectedCompanies,
   observedCompanies: deck.length,
