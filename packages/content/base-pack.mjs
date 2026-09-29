@@ -2,7 +2,7 @@
 // Каталог остаётся источником истины: здесь нет ни одного числа, введённого вручную.
 // Пакет НЕ является сверенной оригинальной колодой — см. docs/06-base-archive.md.
 import { userBaseCatalog } from './user-base-catalog.mjs';
-import { universityCards, auctionManagers, deferredManagers } from './interbellum.mjs';
+import { universityCards, auctionManagers, deferredManagers, personalManager, playableInterbellumCapitalists, interbellumCapitalists } from './interbellum.mjs';
 import { interbellumCompanies } from './interbellum-companies.mjs';
 
 const GROUP_LABEL = { oil: 'Нефть', metal: 'Металл', mine: 'Шахта' };
@@ -70,7 +70,12 @@ export const basePack = {
   // Модуль «Интербеллума»: университеты и жетоны управляющих.
   universities: universityCards,
   managers: auctionManagers,
+  personalManager,
   deferredManagers,
+  // Промышленники дополнения. Обновлённый Артур не отдельная карта: он заменяет
+  // базовую, поэтому включается флагом pairedExtraDisc вместе с дополнением.
+  expansionCapitalists: playableInterbellumCapitalists,
+  deferredCapitalists: interbellumCapitalists.filter(c => c.needs),
   definitions,
   deck,
   // Колода дополнения: 24 новые карты плюс 24 случайные базовые.

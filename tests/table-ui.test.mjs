@@ -303,7 +303,7 @@ test('управляющего ставят в планировании и пр�
     assert.ok(option, 'выигранный жетон должен быть в списке');
     pick.value = 'upgrade-for-metal';
     pick.dispatchEvent(new w.Event('change'));
-    assert.equal(w.eval('S().players.find(x => x.id === currentActor(S())).cards.some(c => c.manager === "upgrade-for-metal")'), true,
+    assert.equal(w.eval('S().players.find(x => x.id === currentActor(S())).cards.some(c => (c.managers ?? []).includes("upgrade-for-metal"))'), true,
       'жетон не лёг на карту');
     assert.deepEqual(errors, []);
   } finally { close(); }
@@ -322,7 +322,7 @@ test('панель управляющего называет действие и
       (function () {
         const s = S(), p = s.players[0];
         const id = PACK.deck.find(x => DEFS[x].advanced.length > 0);
-        p.cards.push({ id: 'ui-card', definitionId: id, upgraded: false, usedRound: 0, manager: 'upgrade-for-metal', local: null });
+        p.cards.push({ id: 'ui-card', definitionId: id, upgraded: false, usedRound: 0, managers: ['upgrade-for-metal'], local: null });
         p.managers.push('upgrade-for-metal');
         p.wallet.metal = 5; p.wallet.coal = 5;
         s.phase = 'production'; s.turn = 0; s.production = { active: null };

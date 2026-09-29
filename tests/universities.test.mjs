@@ -53,13 +53,12 @@ test('в дополнении три карты университетов, у �
   }
 });
 
-test('жетонов управляющих 15, в стопку аукциона идут 12', () => {
+test('жетонов управляющих 15: 14 в стопке и один личный', () => {
   assert.equal(managerTokens.length, 14, '14 обычных жетонов');
   assert.equal(personalManager.personal, true, 'плюс личный жетон промышленника');
-  // «Отдельные модули»: без новых карт предприятий два жетона повтора поставки убираются.
-  assert.equal(auctionManagers.length, 12);
-  assert.equal(auctionManagers.some(t => t.needs === 'supply'), false);
-  assert.equal(new Set(auctionManagers.map(t => t.id)).size, 12, 'идентификаторы уникальны');
+  assert.equal(auctionManagers.length, 14, 'все обычные жетоны разыгрываются на аукционе');
+  assert.equal(new Set(auctionManagers.map(t => t.id)).size, 14, 'идентификаторы уникальны');
+  assert.equal(auctionManagers.includes(personalManager), false, 'личный жетон в стопку не входит');
 });
 
 test('на 1–3 игроков выкладывают две карты, на 4–5 — три', () => {

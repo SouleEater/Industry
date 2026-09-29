@@ -21,7 +21,7 @@ function withAbility(ability, seat = 0, options = {}) {
 test('каждая способность каталога известна движку', () => {
   for (const a of ['repeat-card', 'compensation-plus-one', 'unrestricted-bids', 'paired-extra-disc', 'metal-for-upgrade'])
     assert.ok(ABILITIES.includes(a));
-  assert.equal(ABILITIES.length, 5);
+  assert.equal(ABILITIES.length, 8, 'пять базовых и три из дополнения');
 });
 
 test('промышленники по умолчанию выключены и партия остаётся прежней', () => {

@@ -12,8 +12,18 @@
 //   metal-for-upgrade    Тимур    металл вместо жетона модернизации, но только когда жетоны кончились
 
 export const ABILITIES = [
+  // База
   'repeat-card', 'compensation-plus-one', 'unrestricted-bids', 'paired-extra-disc', 'metal-for-upgrade',
+  // «Интербеллум»
+  'compensation-before-normal',   // раз на каждое немодернизированное предприятие — его компенсация
+  'variable-plus-two',            // диск переменного капитала на 2 больше потраченного угля
+  'personal-manager',             // личный жетон и несколько управляющих на одной карте
 ];
+
+/** Прибавка к значению диска переменного капитала. */
+export const variableBonus = player => (has(player, 'variable-plus-two') ? 2 : 0);
+/** Можно ли класть несколько управляющих на одно предприятие. */
+export const stacksManagers = player => has(player, 'personal-manager');
 
 export const has = (player, name) => Boolean(player) && player.ability === name;
 

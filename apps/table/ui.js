@@ -124,9 +124,10 @@ function cardNode(card, { owner = null, lot = null, mode = 'view' } = {}) {
         d.advanced.map(r => `<div class="recipe dim-row">${effectHtml(r)}</div>`).join('')}</div>`}`;
   }
 
-  if (card.manager) {
-    const tag = el('span', 'card-tag mgr', 'управляющий');
-    tag.title = MANAGERS[card.manager].text;
+  const onCard = card.managers ?? (card.manager ? [card.manager] : []);
+  if (onCard.length) {
+    const tag = el('span', 'card-tag mgr', onCard.length > 1 ? `управляющие ×${onCard.length}` : 'управляющий');
+    tag.title = onCard.map(t => MANAGERS[t].text).join('\n\n');
     face.append(tag);
   }
   if (card.local && Object.values(card.local).some(v => v > 0))
@@ -152,7 +153,7 @@ function cardNode(card, { owner = null, lot = null, mode = 'view' } = {}) {
   return node;
 }
 
-const MANAGERS = Object.fromEntries(PACK.managers.map(m => [m.id, m]));
+const MANAGERS = Object.fromEntries([...PACK.managers, PACK.personalManager].filter(Boolean).map(m => [m.id, m]));
 
 /* ---------- карта университета: иллюстраций нет, рисуем значения ---------- */
 function tableNode(lot) {
@@ -561,32 +562,40 @@ function splitPanel(pending, p) {
 }
 
 /** Применяемый управляющий доступен в любой момент использования карты. */
+const ORDERED_TOKENS = ['upgrade-self', 'discard-self', 'local-gain', 'local-choice', 'repeat-supply'];
 function managerPanel(card, p) {
-  const s = S(), boost = PACK.managers.find(m => m.id === card.manager)?.effect;
-  const ordered = ['upgrade-self', 'discard-self', 'local-gain', 'local-choice'];
-  if (!boost || !ordered.includes(boost.kind) || s.production.active.managerUsed) return null;
+  const s = S();
+  const used = s.production.active.managersUsed ?? [];
+  const onCard = card.managers ?? (card.manager ? [card.manager] : []);
+  const pending = onCard.filter(t => ORDERED_TOKENS.includes(MANAGERS[t]?.effect.kind) && !used.includes(t));
+  if (!pending.length) return null;
 
   const box = el('div', 'effect manager-step');
-  box.append(el('div', 'effect-head', '<span>Управляющий на этом предприятии</span>'));
-  box.append(el('div', 'ledger-note', esc(MANAGERS[card.manager].text)));
-  const row = el('div', 'counter');
-  if (boost.kind === 'local-choice') {
-    boost.options.forEach((option, i) => {
-      const btn = el('button', 'act', `Взять ${Object.entries(option).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(' и ')}`);
-      btn.onclick = () => act({ type: 'UseManager', option: i });
+  box.append(el('div', 'effect-head',
+    `<span>${pending.length > 1 ? 'Управляющие на этом предприятии' : 'Управляющий на этом предприятии'}</span>`));
+  for (const token of pending) {
+    const boost = MANAGERS[token].effect;
+    box.append(el('div', 'ledger-note', esc(MANAGERS[token].text)));
+    const row = el('div', 'counter');
+    if (boost.kind === 'local-choice') {
+      boost.options.forEach((option, i) => {
+        const btn = el('button', 'act', `Взять ${Object.entries(option).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(' и ')}`);
+        btn.onclick = () => act({ type: 'UseManager', token, option: i });
+        row.append(btn);
+      });
+    } else {
+      const label = boost.kind === 'upgrade-self' ? 'Улучшить это предприятие'
+        : boost.kind === 'discard-self' ? `Вывести предприятие и взять ${boost.gain.money} денег`
+          : boost.kind === 'repeat-supply' ? 'Разыграть поставку ещё раз'
+            : `Взять ${Object.entries(boost.gain).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(' и ')} на карту`;
+      const btn = el('button', 'act', label);
+      if (boost.kind === 'upgrade-self')
+        btn.disabled = card.upgraded || !canPay(p.wallet, boost.cost) || DEFS[card.definitionId].kind !== 'company';
+      btn.onclick = () => act({ type: 'UseManager', token });
       row.append(btn);
-    });
-  } else {
-    const label = boost.kind === 'upgrade-self' ? 'Улучшить это предприятие'
-      : boost.kind === 'discard-self' ? `Вывести предприятие и взять ${boost.gain.money} денег`
-        : `Взять ${Object.entries(boost.gain).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(' и ')} на карту`;
-    const btn = el('button', 'act', label);
-    if (boost.kind === 'upgrade-self')
-      btn.disabled = card.upgraded || !canPay(p.wallet, boost.cost) || DEFS[card.definitionId].kind !== 'company';
-    btn.onclick = () => act({ type: 'UseManager' });
-    row.append(btn);
+    }
+    box.append(row);
   }
-  box.append(row);
   return box;
 }
 
@@ -629,6 +638,35 @@ function renderEffect() {
 
   const a = s.production.active;
   if (!a) return;
+
+  // Компенсатор: своя компенсация разыгрывается до обычных строк.
+  if (a.compensationLeft) {
+    const card = p.cards.find(c => c.id === a.cardId);
+    const comp = DEFS[card.definitionId].compensation;
+    const box = el('div', 'effect manager-step');
+    box.append(el('div', 'effect-head', '<span>Компенсация своего предприятия — до обычных строк</span>'));
+    box.append(el('div', 'recipe', effectHtml(comp)));
+    const row = el('div', 'counter');
+    if (comp.kind === 'gain') {
+      const take = el('button', 'act', 'Взять компенсацию');
+      take.onclick = () => act({ type: 'UseOwnCompensation', times: 1 });
+      row.append(take);
+    } else {
+      let max = 0;
+      for (let t = comp.limit; t >= 1; t--) if (canPay(p.wallet, comp.cost, t)) { max = t; break; }
+      for (let t = 1; t <= max; t++) {
+        const btn = el('button', 'act', `Применить ×${t}`);
+        btn.onclick = () => act({ type: 'UseOwnCompensation', times: t });
+        row.append(btn);
+      }
+      if (!max) row.append(el('span', 'cap', 'не хватает сырья'));
+    }
+    const skip = el('button', 'act ghost', 'Не применять');
+    skip.onclick = () => act({ type: 'UseOwnCompensation', times: 0 });
+    row.append(skip);
+    box.append(row); slot.append(box);
+    return;
+  }
   const card = p.cards.find(c => c.id === a.cardId), d = DEFS[card.definitionId];
   // Поставки идут вне очереди производства, поэтому в списке строк их нет.
   const list = [...d.effects, ...(card.upgraded ? d.advanced : [])].filter(r => r.kind !== 'supply');
@@ -738,15 +776,19 @@ function renderLine() {
 
     if (planning && p.managers.length) {
       const row = el('div', 'move-row mgr-row');
-      const free = p.managers.filter(t => !p.cards.some(c => c.manager === t && c.id !== card.id));
+      const here = card.managers ?? [];
+      const busy = new Set(p.cards.flatMap(c => (c.id === card.id ? [] : c.managers ?? [])));
+      const free = p.managers.filter(t => !busy.has(t));
       const pick = el('select', 'mgr-pick');
       pick.innerHTML = `<option value="">без управляющего</option>` + free.map(t =>
-        `<option value="${t}" ${card.manager === t ? 'selected' : ''}>${esc(MANAGERS[t].text.slice(0, 44))}…</option>`).join('');
-      pick.title = card.manager ? MANAGERS[card.manager].text : 'Поставить жетон управляющего на это предприятие';
+        `<option value="${t}" ${here.includes(t) ? 'selected' : ''}>${esc(MANAGERS[t].text.slice(0, 40))}…</option>`).join('');
+      if (p.ability === 'personal-manager') pick.multiple = true;
+      pick.title = here.length ? here.map(t => MANAGERS[t].text).join('\n\n') : 'Поставить жетон управляющего';
       pick.onchange = () => {
-        const next = p.cards
-          .map(c => ({ cardId: c.id, token: c.id === card.id ? pick.value : c.manager }))
-          .filter(x => x.token);
+        const chosen = pick.multiple ? [...pick.selectedOptions].map(o => o.value).filter(Boolean)
+          : (pick.value ? [pick.value] : []);
+        const next = p.cards.flatMap(c => (c.id === card.id ? chosen : c.managers ?? [])
+          .map(token => ({ cardId: c.id, token })));
         act({ type: 'PlaceManagers', assignments: next });
       };
       node.append(pick);
@@ -811,6 +853,8 @@ const LOG_TEXT = {
   CountedCards: (e, n) => `<b>${n(e.playerId)}</b> считает подходящие предприятия: ${e.cards}`,
   BonusArmed: (e, n) => `<b>${n(e.playerId)}</b> включает надбавку за операции с ресурсом`,
   OperationBonus: (e, n) => `<b>${n(e.playerId)}</b> получает надбавку ${Object.entries(e.gain).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(', ')}`,
+  SupplyRepeated: (e, n) => `<b>${n(e.playerId)}</b> повторяет поставку жетоном управляющего`,
+  OwnCompensationUsed: (e, n) => e.times ? `<b>${n(e.playerId)}</b> разыгрывает компенсацию своей карты ×${e.times}` : null,
   SupplyTaken: (e, n) => `<b>${n(e.playerId)}</b> получает поставку: ${Object.entries(e.gain).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(', ')}`,
   SupplyOffered: (e, n) => `<b>${n(e.playerId)}</b> может разыграть поставку`,
   SupplyResolved: (e, n) => e.times ? `<b>${n(e.playerId)}</b> разыгрывает поставку ×${e.times}` : `<b>${n(e.playerId)}</b> отказывается от поставки`,

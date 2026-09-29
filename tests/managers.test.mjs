@@ -13,9 +13,9 @@ const byId = id => auctionManagers.find(t => t.id === id) ?? auctionManagers.fin
 function staged({ token, definitionId, upgraded = false, wallet = {} } = {}) {
   const s = createGame({ names: ['Аня', 'Борис', 'Вика'], seed: 5, universities: true }, basePack);
   const p = s.players[0];
-  const card = { id: 'test-card', definitionId, upgraded, usedRound: 0, manager: null, local: null };
+  const card = { id: 'test-card', definitionId, upgraded, usedRound: 0, managers: [], local: null };
   p.cards.push(card);
-  if (token) { p.managers.push(token); card.manager = token; }
+  if (token) { p.managers.push(token); card.managers = [token]; }
   p.wallet = { ...emptyWallet(), coal: 20, metal: 20, oil: 20, upgrade: 20, money: 0, ...wallet };
   s.phase = 'production'; s.turn = 0; s.production = { active: null };
   return s;
@@ -52,15 +52,15 @@ test('управляющих размещают в фазе планирован
   }), e => e.code === 'INVALID_ASSIGNMENT');
 
   s = act(s, 'PlaceManagers', { assignments: [{ cardId: a.id, token: 'upgrade-for-metal' }] });
-  assert.equal(s.players[0].cards.find(c => c.id === a.id).manager, 'upgrade-for-metal');
+  assert.equal(s.players[0].cards.find(c => c.id === a.id).managers[0], 'upgrade-for-metal');
   // повторный вызов заменяет расстановку целиком
   s = act(s, 'PlaceManagers', { assignments: [] });
-  assert.equal(s.players[0].cards.every(c => !c.manager), true);
+  assert.equal(s.players[0].cards.every(c => !(c.managers ?? []).length), true);
 });
 
 test('в конце раунда жетоны возвращаются игроку и остаются у него', () => {
   let s = createGame({ names: ['А', 'Б', 'В'], seed: 9, universities: true }, basePack);
-  s.players.forEach(p => { p.managers = ['money-per-sale']; p.cards[0].manager = 'money-per-sale'; p.done = true; });
+  s.players.forEach(p => { p.managers = ['money-per-sale']; p.cards[0].managers = ['money-per-sale']; p.done = true; });
   s.phase = 'production'; s.turn = 0; s.production = { active: null };
   s.players.forEach(p => p.cards.forEach(c => { c.usedRound = s.round; }));
   s.players[0].done = false;
@@ -68,7 +68,7 @@ test('в конце раунда жетоны возвращаются игро�
   assert.equal(s.round, 2, 'начался следующий раунд');
   for (const p of s.players) {
     assert.deepEqual(p.managers, ['money-per-sale'], 'жетон остался у игрока');
-    assert.equal(p.cards.every(c => !c.manager), true, 'с карт жетоны сняты');
+    assert.equal(p.cards.every(c => !(c.managers ?? []).length), true, 'с карт жетоны сняты');
   }
 });
 
@@ -273,7 +273,8 @@ test('каждый жетон стопки имеет реализованный
   const kinds = new Set(auctionManagers.map(t => t.effect.kind));
   assert.deepEqual([...kinds].sort(), [
     'discard-self', 'extra-limit', 'free-operation', 'if-all-sales',
-    'local-choice', 'local-gain', 'per-operation', 'upgrade-self',
+    'local-choice', 'local-gain', 'per-operation', 'repeat-supply', 'upgrade-self',
   ]);
-  assert.equal(auctionManagers.length, 12);
+  assert.equal(auctionManagers.length, 14, 'все жетоны коробки в стопке');
+  assert.equal(auctionManagers.every(t => t.playable), true);
 });
