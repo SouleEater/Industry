@@ -83,7 +83,7 @@ export function openStore(dataDir) {
         (SELECT COUNT(*) FROM seats WHERE code = t.code) AS players
       FROM tables t JOIN users h ON h.id = t.host_id
       WHERE t.status = 'lobby' AND t.is_public = 1
-        AND (SELECT COUNT(*) FROM seats WHERE code = t.code) < 4
+        AND (SELECT COUNT(*) FROM seats WHERE code = t.code) < 5
         AND NOT EXISTS (SELECT 1 FROM seats WHERE code = t.code AND user_id = ?)
       ORDER BY t.created_at DESC LIMIT 30`),
     staleLobbies: db.prepare(`DELETE FROM tables WHERE status = 'lobby' AND updated_at < ?`),

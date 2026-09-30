@@ -107,7 +107,8 @@ function phase(s, name) { requireRule(s.phase === name, 'WRONG_PHASE', 'Это �
 function actor(s, id) { requireRule(currentActor(s) === id, 'NOT_YOUR_TURN', 'Сейчас действует другой игрок.'); }
 
 export function createGame({ names = ['Игрок 1', 'Игрок 2', 'Игрок 3'], variableCapital = false, seed = 2026, planning = true, productionChain = false, turnSeconds = 0, capitalists = false, pairedExtraDisc = false, universities = false, expansion = false } = {}, pack) {
-  requireRule(Array.isArray(names) && [2, 3, 4].includes(names.length), 'UNSUPPORTED_CONFIG', 'Поддерживаются 2, 3 или 4 игрока.');
+  // Пятый игрок — из «Интербеллума» (правила дополнения, стр. 10: «Игра впятером»).
+  requireRule(Array.isArray(names) && [2, 3, 4, 5].includes(names.length), 'UNSUPPORTED_CONFIG', 'Поддерживается от 2 до 5 игроков.');
   requireRule(names.every(n => typeof n === 'string' && n.trim().length > 0 && n.length <= 40), 'INVALID_NAME', 'Имя должно содержать от 1 до 40 символов.');
   requireRule(typeof variableCapital === 'boolean' && integer(seed) && seed <= 0xffffffff, 'INVALID_CONFIG', 'Некорректная настройка партии.');
   requireRule(typeof planning === 'boolean' && typeof productionChain === 'boolean' && (!productionChain || planning), 'INVALID_CONFIG', 'Цепочка требует планирования.');
@@ -135,9 +136,15 @@ export function createGame({ names = ['Игрок 1', 'Игрок 2', 'Игро�
   // С дополнением в раздачу идут и его стартовые предприятия (правила дополнения, подготовка, пункт 1).
   const startPool = expansion && Array.isArray(pack.expansionStartupIds)
     ? [...pack.startupIds, ...pack.expansionStartupIds] : pack.startupIds;
+  // «Игрок, который ходит пятым в первом раунде, получает 2 карты стартовых предприятий
+  // и 2 карты промышленников и выбирает по одной из них» (правила дополнения, стр. 10).
+  // Первый игрок — p0, поэтому пятым ходит p4. Если лишних карт нет, выбирать не из чего.
+  const fifth = names.length === 5;
+  let startChoice = null, capitalistChoice = null;
   if (Array.isArray(startPool) && startPool.length >= names.length) {
     const roll = shuffle(startPool, rng); rng = roll.seed;
     startIds = roll.items.slice(0, names.length);
+    if (fifth && roll.items.length > 5) startChoice = roll.items.slice(4, 6);
   }
   const starts = startIds.map(id => {
     const card = definition(pack.definitions, id);
@@ -157,6 +164,7 @@ export function createGame({ names = ['Игрок 1', 'Игрок 2', 'Игро�
     pool.forEach(c => requireRule(ABILITIES.includes(c.ability), 'INVALID_PACK', 'Неизвестная способность промышленника.'));
     const roll = shuffle(pool, rng); rng = roll.seed;
     abilities = roll.items.slice(0, names.length);
+    if (fifth && roll.items.length > 5) capitalistChoice = roll.items.slice(4, 6);
   }
   // Университеты: на 1–3 игроков две случайные карты, на 4–5 — все три (правила дополнения, стр. 6).
   let tables = [], managerDeck = [], managerDefs = {};
@@ -211,7 +219,41 @@ export function createGame({ names = ['Игрок 1', 'Игрок 2', 'Игро�
   if (withAgent) s.players.push({ id: 'agent', name: 'Агент', agent: true, seat: s.players.length, ability: null, capitalistId: null,
     wallet: emptyWallet(), cards: [], discs: [], managers: [], bonuses: [], blocked: false, done: false, repeated: false, lockedOrder: [], planned: false });
   s.config.agent = withAgent;
-  event(s, 'GameStarted', withAgent ? { agent: true } : {}); startAuction(s); return s;
+  event(s, 'GameStarted', withAgent ? { agent: true } : {});
+  if (startChoice || capitalistChoice) {
+    // Пятый игрок выбирает до начала аукциона; ресурсы стартового предприятия он получает после выбора.
+    s.phase = 'choosing'; s.turn = 4;
+    // До выбора у пятого игрока нет ни промышленника, ни ресурсов: показывать предварительную раздачу нельзя.
+    const p4 = s.players[4];
+    if (capitalistChoice) { p4.capitalistId = null; p4.ability = null; p4.managers = []; }
+    if (startChoice) p4.wallet = emptyWallet();
+    s.choice = { playerId: 'p4', startups: startChoice, capitalists: capitalistChoice?.map(c => c.id) ?? null,
+      abilities: capitalistChoice ? Object.fromEntries(capitalistChoice.map(c => [c.id, c.ability])) : null,
+      personalManager: pack.personalManager?.id ?? null };
+    event(s, 'ChoiceOffered', { playerId: 'p4' });
+    return s;
+  }
+  startAuction(s); return s;
+}
+/** Выбор пятого игрока: стартовое предприятие и промышленник из двух предложенных. */
+function chooseStart(s, p, command, defs) {
+  const c = s.choice;
+  requireRule(c && c.playerId === p.id, 'NO_CHOICE', 'Сейчас выбирает другой игрок.');
+  if (c.startups) {
+    requireRule(c.startups.includes(command.startupId), 'INVALID_CHOICE', 'Выберите одно из двух предложенных стартовых предприятий.');
+    const card = definition(defs, command.startupId);
+    p.cards = [{ id: p.cards[0].id, definitionId: command.startupId, upgraded: false, usedRound: 0 }];
+    p.wallet = { ...emptyWallet(), ...card.starting, coal: (card.starting.coal ?? 0) + Number(s.config.variableCapital) };
+  }
+  if (c.capitalists) {
+    requireRule(c.capitalists.includes(command.capitalistId), 'INVALID_CHOICE', 'Выберите одного из двух предложенных промышленников.');
+    p.capitalistId = command.capitalistId;
+    p.ability = c.abilities[command.capitalistId];
+    p.managers = p.ability === 'personal-manager' && c.personalManager ? [c.personalManager] : [];
+  }
+  s.choice = null;
+  event(s, 'ChoiceMade', { playerId: p.id, startupId: p.cards[0].definitionId, capitalistId: p.capitalistId });
+  startAuction(s);
 }
 function startAuction(s) {
   // Агент не увеличивает число лотов: вдвоём их шесть (B03).
@@ -576,6 +618,10 @@ export function dispatch(state, command, defs) {
   actor(state, command.actorId);
   const s = clone(state), p = player(s, command.actorId);
   switch (command.type) {
+    case 'ChooseStart': {
+      phase(s, 'choosing');
+      chooseStart(s, p, command, defs); break;
+    }
     case 'Bid': {
       phase(s, 'auction');
       const error = bidError(s, p.id, command.discId, command.lotId, command.value);

@@ -660,3 +660,40 @@ h3.sub { font-size: 14px; letter-spacing: .1em; text-transform: uppercase; color
 @media (max-width: 520px) { .seats { grid-template-columns: 1fr; } }
 
 .online-strip { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 16px; padding: 12px 14px; border-radius: 12px; background: rgba(226, 176, 74, .08); border: 1px solid rgba(226, 176, 74, .35); font-size: 14px; }
+
+/* ---------- уведомления ---------- */
+#feed { position: fixed; left: 14px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 70; display: flex; flex-direction: column; gap: 6px; max-width: min(360px, 80vw); pointer-events: none; }
+.feed-item { padding: 8px 12px; border-radius: 10px; font-size: 13.5px; color: var(--frost); background: rgba(22, 33, 45, .94);
+  border: 1px solid var(--rivet); border-left: 4px solid var(--seat, var(--brass)); box-shadow: 0 10px 24px -14px #000;
+  animation: feed-in .25s ease-out; transition: opacity .4s, transform .4s; }
+.feed-item b { color: var(--chalk); font-weight: 500; }
+.feed-item.out { opacity: 0; transform: translateX(-12px); }
+@keyframes feed-in { from { opacity: 0; transform: translateY(10px); } }
+
+#banner { position: fixed; inset: 0; z-index: 65; display: grid; place-items: center; pointer-events: none; opacity: 0; }
+#banner.show { animation: banner 1.6s ease-out forwards; }
+.banner-card { padding: 18px 34px; border-radius: 16px; text-align: center; background: rgba(15, 21, 29, .92);
+  border: 1px solid var(--edge); border-top: 4px solid var(--seat, var(--brass)); box-shadow: 0 30px 60px -20px #000; }
+.banner-card b { display: block; font-family: Oswald, sans-serif; font-weight: 500; font-size: clamp(26px, 5vw, 40px); letter-spacing: .05em; }
+.banner-card span { display: block; color: var(--frost); font-size: 15px; margin-top: 4px; }
+@keyframes banner { 0% { opacity: 0; transform: scale(.94); } 15% { opacity: 1; transform: none; } 75% { opacity: 1; } 100% { opacity: 0; } }
+
+.handoff-screen { position: fixed; inset: 0; z-index: 75; display: grid; place-items: center; padding: 16px;
+  background: radial-gradient(circle at 50% 40%, #1d2b3a, #080c11 70%); }
+.handoff-card { text-align: center; padding: 34px 30px; border-radius: 18px; background: var(--panel); border: 1px solid var(--edge);
+  border-top: 5px solid var(--seat); min-width: min(360px, 90vw); }
+.handoff-card .cap { color: var(--frost); font-size: 15px; }
+.handoff-card .who { font-family: Oswald, sans-serif; font-size: 40px; margin: 8px 0 20px; }
+
+.keys { margin: 6px 0; padding-left: 18px; color: var(--frost); font-size: 14px; line-height: 1.9; }
+kbd { display: inline-block; min-width: 22px; padding: 1px 6px; border-radius: 5px; border: 1px solid var(--edge); border-bottom-width: 2px;
+  background: #0f1720; color: var(--chalk); font: 12.5px/1.4 'Golos Text', sans-serif; text-align: center; }
+@media (prefers-reduced-motion: reduce) { #banner.show { animation: none; opacity: 0; } }
+
+/* выбор пятого игрока */
+.choose-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
+.choose-row .card { --card-w: 150px; cursor: pointer; }
+.choose-row .card.picked .card-face { box-shadow: 0 0 0 3px var(--brass), 0 0 26px -6px var(--brass); }
+.hero-choice { flex: 1 1 280px; max-width: 420px; border-radius: 16px; cursor: pointer; }
+.hero-choice.picked .hero-card { box-shadow: 0 0 0 3px var(--brass); }
+.seats { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }

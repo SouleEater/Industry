@@ -11,6 +11,7 @@ const SEATS = [
   { base: '#2f7d8a', lite: '#4fa8b5' },
   { base: '#8a6a2f', lite: '#c19a4a' },
   { base: '#6a4a8a', lite: '#9b78bf' },
+  { base: '#2f5f9e', lite: '#5b8fd6' },
 ];
 const RES_NAME = { coal: 'уголь', metal: 'металл', oil: 'нефть', upgrade: 'жетон модернизации', money: 'деньги' };
 const RES_SHORT = { coal: 'угля', metal: 'металла', oil: 'нефти', upgrade: 'жетонов', money: 'денег' };
@@ -86,7 +87,7 @@ function bundleHtml(values, mult = 1) {
 function effectHtml(e) {
   if (!e) return '';
   if (e.kind === 'supply') return `<span class="bolt">⚡</span>${effectHtml(e.of)}<span class="cap">однократно</span>`;
-  if (['count-cards', 'operation-bonus', 'upgrade-next', 'text', 'permanent'].includes(e.kind))
+  if (['count-cards', 'operation-bonus', 'upgrade-next', 'text', 'permanent', 'take-stored'].includes(e.kind))
     return `<span>${esc(e.text ?? '')}</span>`;
   if (e.kind === 'upgrade') return `${bundleHtml(e.cost ?? { coal: 1, upgrade: 1 })}<span class="to">→</span><span class="res flip" title="Модернизация"><span class="ico">${ICONS.flip}</span></span>${e.limit ? `<span class="cap">до ${e.limit} раз</span>` : ''}`;
   if (e.kind === 'gain') return bundleHtml(e.gain);
@@ -166,7 +167,7 @@ function sceneSvg(tone, seed) {
 }
 /** Название карты: у карт дополнения в данных лишь номер, поэтому даём понятное имя. */
 function cardTitle(d, id) {
-  if (!d.expansion) return d.name;
+  if (!d.expansion || d.kind !== 'company') return d.name;
   const n = String(id ?? d.name).match(/(\d+)\s*$/)?.[1] ?? '';
   return `Интербеллум ${Number(n) + 1 || ''}`.trim();
 }
@@ -431,6 +432,7 @@ function renderRail() {
     ${net.server ? (net.user
     ? `<button class="chip" data-open="account" title="Аккаунт">👤 ${esc(net.user.username)}</button>`
     : `<button class="chip" data-open="login">Войти</button>`) : ''}
+    <button class="chip" data-open="settings" title="Настройки: звук, уведомления, горячие клавиши" aria-label="Настройки">⚙</button>
     <button class="chip" data-open="help" title="Как играть">? <span class="wide">Как играть</span></button>
     <button class="chip" data-open="gallery" title="Каталог карт">Карты</button>
     <button class="chip" data-open="log" title="Журнал ходов">Журнал</button>
@@ -529,6 +531,7 @@ function renderStage() {
     ? '<h2>Линии соперников</h2><span>Ниже вы расставляете свою линию: порядок решает, чем вы заплатите дальше.</span>'
     : s.phase === 'production'
       ? '<h2>Линии соперников</h2><span>Каждое предприятие работает один раз за раунд.</span>'
+      : s.phase === 'choosing' ? '<h2>Подготовка</h2><span>Пятый игрок выбирает, с чем начнёт партию.</span>'
       : '<h2>Партия окончена</h2><span></span>';
 
   for (const p of s.players) {
@@ -589,6 +592,10 @@ function renderPrompt() {
   const waiting = !myTurn();
   const actorName = esc(s.players.find(x => x.id === currentActor(s))?.name ?? '');
 
+  if (s.phase === 'choosing') {
+    if (waiting) return promptBox(`<b>${actorName}</b> ходит пятым и выбирает стартовое предприятие и промышленника.`, true);
+    return promptBox('Вы ходите пятым: по правилам «Интербеллума» выберите одно из двух стартовых предприятий и одного из двух промышленников.');
+  }
   if (s.phase === 'auction') {
     if (waiting) return promptBox(`Ставку делает <b>${actorName}</b>.`, true);
     const pair = s.pendingPair?.playerId === p.id;   // только в режиме обновлённой карты «Интербеллума»
@@ -840,6 +847,47 @@ function extraPanels() {
 function renderEffectMain() {
   const s = S(), p = me(), slot = $('#effect-slot');
   slot.innerHTML = '';
+
+  if (s.phase === 'choosing') {
+    if (!myTurn() || !s.choice) return;
+    const c = s.choice;
+    ui.pick ??= { startupId: c.startups?.[0] ?? null, capitalistId: c.capitalists?.[0] ?? null };
+    const box = el('div', 'effect choose');
+    if (c.startups) {
+      box.append(el('div', 'effect-head', '<span>Стартовое предприятие</span>'));
+      const row = el('div', 'choose-row');
+      c.startups.forEach(id => {
+        const node = cardNode({ id: `opt-${id}`, definitionId: id, upgraded: false, usedRound: 0 });
+        node.classList.add('choice');
+        if (ui.pick.startupId === id) node.classList.add('picked');
+        node.tabIndex = 0;
+        node.onclick = () => { ui.pick.startupId = id; render(); };
+        row.append(node);
+      });
+      box.append(row);
+    }
+    if (c.capitalists) {
+      box.append(el('div', 'effect-head', '<span>Промышленник</span>'));
+      const row = el('div', 'choose-row heroes');
+      c.capitalists.forEach(id => {
+        const wrap = el('div', `hero-choice ${ui.pick.capitalistId === id ? 'picked' : ''}`, heroCardHtml(capOf(id), { compact: true }));
+        wrap.querySelector('.hero-card').removeAttribute('data-cap');
+        wrap.tabIndex = 0;
+        wrap.onclick = () => { ui.pick.capitalistId = id; render(); };
+        row.append(wrap);
+      });
+      box.append(row);
+    }
+    const go = el('button', 'act', 'Подтвердить выбор');
+    go.onclick = () => {
+      const pick = ui.pick; ui.pick = null;
+      act({ type: 'ChooseStart', startupId: pick.startupId, capitalistId: pick.capitalistId });
+      if (S().phase !== 'choosing' && S().players.some(x => x.capitalistId)) showDeal();
+    };
+    const actions = el('div', 'counter'); actions.append(go); box.append(actions);
+    slot.append(box);
+    return;
+  }
 
   if (s.phase === 'auction' && ui.focus) {
     const lot = s.lots.find(l => l.id === ui.focus);
@@ -1137,6 +1185,8 @@ const LOG_TEXT = {
   StoredOnCard: (e, n) => `<b>${n(e.playerId)}</b> кладёт ${RES_SHORT[e.resource]} на карту${e.reason === 'compensation' ? ' (компенсация за диск 3–4)' : ''}`,
   TookFromCard: (e, n) => e.amount ? `<b>${n(e.playerId)}</b> забирает с карты ${e.amount} ${RES_SHORT[e.resource]}` : null,
   NeighbourCardUsed: (e, n) => `<b>${n(e.playerId)}</b> тратит 1 металл и использует предприятие соседа`,
+  ChoiceOffered: (e, n) => `<b>${n(e.playerId)}</b> ходит пятым и выбирает стартовое предприятие и промышленника`,
+  ChoiceMade: (e, n) => `<b>${n(e.playerId)}</b> выбирает «${esc(DEFS[e.startupId]?.name ?? '')}»${e.capitalistId ? ` и промышленника ${esc(capOf(e.capitalistId)?.name ?? '')}` : ''}`,
   CardCompleted: () => null,
   CardsArranged: () => null,
   GameFinished: () => 'Четвёртый раунд сыгран',
@@ -1190,6 +1240,7 @@ function render() {
     ui.settleTimer = setTimeout(() => act({ type: 'ResolveLot' }, true), delay);
   }
   if (s.phase === 'finished' && !ui.shownResult) { ui.shownResult = true; showResult(); }
+  if (typeof afterRender === 'function') afterRender(s);
 }
 
 /* ---------- команды ---------- */
@@ -1287,6 +1338,9 @@ function showDeal() {
   $('#deal-body').innerHTML = `<h2>Раздача</h2>
     <p>Каждый получил стартовое предприятие и промышленника. Способность промышленника действует всю партию; посмотреть её можно наверху экрана.</p>
     <div class="deal-list">${s.players.filter(x => !x.agent).map(p => {
+      if (s.phase === 'choosing' && s.choice?.playerId === p.id)
+        return `<div class="deal-row" style="--seat:${SEATS[p.seat % SEATS.length].base}"><div class="deal-name">${esc(p.name)}</div>
+          <div class="deal-start">Ходит пятым: выбирает одно из двух стартовых предприятий и одного из двух промышленников.</div></div>`;
       const c = p.capitalistId ? capOf(p.capitalistId) : null;
       const st = DEFS[p.cards[0].definitionId];
       return `<div class="deal-row" style="--seat:${SEATS[p.seat % SEATS.length].base}">
@@ -1354,13 +1408,15 @@ function openSetup() {
       ui.prevWallets = {};
       save(); render();
       $('#setup').close();
-      if (state.players.some(x => x.capitalistId)) showDeal(); else maybeHelp();
+      if (state.phase === 'choosing' && !state.players[4]?.agent) maybeHelp();
+      else if (state.players.some(x => x.capitalistId)) showDeal(); else maybeHelp();
     } catch (err) { toast(err.message); }
   };
   const sync = () => {
     const n = Number(field('count').value);
     form.querySelectorAll('.pname-row').forEach((row, i) => row.style.display = i < n ? '' : 'none');
-    $('#deck-warn').style.display = n === 4 ? '' : 'none';
+    $('#deck-warn').style.display = n >= 4 ? '' : 'none';
+    $('#five-note').style.display = n === 5 ? '' : 'none';
     $('#agent-note').style.display = n === 2 ? '' : 'none';
     // С дополнением колода становится полной, костыль с возвратом лотов не нужен.
     if (field('expansion').checked) $('#deck-warn').style.display = 'none';

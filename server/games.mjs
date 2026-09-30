@@ -8,7 +8,7 @@ import { RuleError } from '../packages/domain/rules.mjs';
 const DEFS = basePack.definitions;
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const OPTION_KEYS = ['expansion', 'universities', 'chain', 'variable', 'capitalists'];
-const MAX_SEATS = 4;
+const MAX_SEATS = 5;   // пятый игрок — правило «Интербеллума»
 
 export class GameError extends Error {
   constructor(status, message, extra = {}) { super(message); this.status = status; Object.assign(this, extra); }

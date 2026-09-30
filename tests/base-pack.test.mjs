@@ -80,6 +80,11 @@ function autoplay(options, seed) {
     assert.ok(++guard < 20000, `партия зациклилась на фазе ${s.phase}`);
     const me = s.players.find(p => p.id === currentActor(s));
 
+    if (s.phase === 'choosing') {
+      const c = s.choice;
+      go({ type: 'ChooseStart', startupId: c.startups?.[rnd(2)], capitalistId: c.capitalists?.[rnd(2)] });
+      continue;
+    }
     if (s.phase === 'auction') {
       const moves = [];
       for (const d of me.discs) {
@@ -144,14 +149,14 @@ function autoplay(options, seed) {
 }
 
 const combos = [];
-for (const players of [2, 3, 4])
+for (const players of [2, 3, 4, 5])
   for (const productionChain of [false, true])
     for (const variableCapital of [false, true])
       for (const capitalists of [false, true])
         combos.push({ names: Array.from({ length: players }, (_, i) => `И${i + 1}`), productionChain, variableCapital, capitalists });
 
 for (const options of combos) {
-  const label = `${options.names.length} игрока, цепочка ${options.productionChain ? 'да' : 'нет'},`
+  const label = `${options.names.length} игрок(ов), цепочка ${options.productionChain ? 'да' : 'нет'},`
     + ` переменный капитал ${options.variableCapital ? 'да' : 'нет'}, промышленники ${options.capitalists ? 'да' : 'нет'}`;
   test(`партия доигрывается до конца: ${label}`, () => {
     for (let run = 0; run < 6; run++) {

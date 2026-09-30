@@ -44,12 +44,13 @@
     <h2>Новая партия</h2>
     <p>Четыре раунда: в каждом сначала аукцион дисками, потом производство. Побеждает тот, у кого больше денег.</p>
     <label class="field"><span>Сколько игроков</span>
-      <select name="count"><option value="2">2 игрока и агент</option><option value="3" selected>3 игрока</option><option value="4">4 игрока</option></select></label>
+      <select name="count"><option value="2">2 игрока и агент</option><option value="3" selected>3 игрока</option><option value="4">4 игрока</option><option value="5">5 игроков</option></select></label>
     <div class="names">
       <div class="pname-row field"><span>Игрок 1</span><input class="pname" maxlength="24" placeholder="Аня"></div>
       <div class="pname-row field"><span>Игрок 2</span><input class="pname" maxlength="24" placeholder="Борис"></div>
       <div class="pname-row field"><span>Игрок 3</span><input class="pname" maxlength="24" placeholder="Вика"></div>
       <div class="pname-row field"><span>Игрок 4</span><input class="pname" maxlength="24" placeholder="Гена"></div>
+      <div class="pname-row field"><span>Игрок 5</span><input class="pname" maxlength="24" placeholder="Даша"></div>
     </div>
 
     <details class="more">
@@ -67,7 +68,8 @@
     </details>
 
     <div class="warn-box" id="agent-note">Вдвоём третьим участником садится агент базовой игры. Он делает ставки сам: бросок d6 выбирает предприятие, затем ставится минимальный легальный диск.</div>
-    <div class="warn-box" id="deck-warn">Вчетвером за четыре раунда нужно 32 предприятия, а в каталоге их 31. Невыкупленные лоты будут возвращаться в колоду.</div>
+    <div class="warn-box" id="deck-warn">Без «Интербеллума» в каталоге 31 предприятие: вчетвером (32 за партию) и впятером (36) невыкупленные лоты будут возвращаться в колоду.</div>
+    <div class="warn-box" id="five-note">Игра впятером — правило «Интербеллума»: 9 предприятий в ряду, 3 университета. Пятый игрок выбирает одно из двух стартовых предприятий и одного из двух промышленников. Партия заметно длиннее.</div>
     <div class="sheet-actions">
       <button type="button" class="act ghost" data-close>Отмена</button>
       <button type="submit" class="act">Начать игру</button>
@@ -118,6 +120,10 @@
 
 <dialog id="zoom"></dialog>
 <div id="toast" role="status" aria-live="polite"></div>
+<div id="feed" aria-live="polite"></div>
+<div id="banner" aria-hidden="true"></div>
+<div id="handoff" class="handoff-screen" hidden></div>
+<dialog id="settings"><div class="sheet" id="settings-body"></div></dialog>
 
 <script>/*DATA*/</script>
 <script>/*ENGINE*/</script>

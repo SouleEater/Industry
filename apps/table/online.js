@@ -216,7 +216,7 @@ function applyView(view) {
   }
   if (first && o.sawLobby) {
     o.sawLobby = false;
-    if (view.state.players.some(p => p.capitalistId)) showDeal(); else maybeHelp();
+    if (view.state.phase !== 'choosing' && view.state.players.some(p => p.capitalistId)) showDeal(); else maybeHelp();
   }
 }
 
@@ -227,9 +227,9 @@ function renderLobby() {
   const iAmHost = v.host === net.user.username;
   const opts = Object.entries({ expansion: '«Интербеллум»', universities: 'университеты', capitalists: 'промышленники', chain: 'цепочка', variable: 'переменный капитал' })
     .filter(([k]) => v.options[k]).map(([, t]) => t);
-  const seats = Array.from({ length: 4 }, (_, i) => v.seats.find(s => s.seat === i));
+  const seats = Array.from({ length: 5 }, (_, i) => v.seats.find(s => s.seat === i));
   $('#lobby-body').innerHTML = `<h2>Стол <span class="t-code big">${esc(v.code)}</span></h2>
-    <p>Отправьте друзьям код или ссылку. Играть могут от 2 до 4 человек; вдвоём третьим садится агент.</p>
+    <p>Отправьте друзьям код или ссылку. Играть могут от 2 до 5 человек; вдвоём третьим садится агент.</p>
     <div class="link-row"><input readonly value="${escAttr(inviteLink(v.code))}" aria-label="Ссылка на стол"><button class="chip" id="copy-link">Копировать</button></div>
     <ol class="seats">${seats.map((s, i) => `<li class="${s ? 'taken' : ''}"><span class="seat-n">${i + 1}</span>${
       s ? `<b>${esc(s.username)}</b>${s.username === v.host ? ' <span class="cn-state">хозяин</span>' : ''}${s.username === net.user.username ? ' <span class="cn-state up">вы</span>' : ''}` : '<span class="muted">свободно</span>'}</li>`).join('')}</ol>

@@ -37,7 +37,10 @@ test('two player mode seats the base agent instead of being rejected',()=>{
   assert.equal(s.players[2].agent,true);
   assert.equal(s.lots.length,6,'B03: вдвоём выставляется 6 предприятий');
 });
-test('five players are still rejected',()=>assert.throws(()=>game({names:['A','B','C','D','E']}),e=>e.code==='UNSUPPORTED_CONFIG'));
+test('six players are rejected, five are allowed (Interbellum)',()=>{
+  assert.throws(()=>game({names:['A','B','C','D','E','F']}),e=>e.code==='UNSUPPORTED_CONFIG');
+  assert.equal(game({names:['A','B','C','D','E']}).players.length,5);
+});
 test('unknown effect is not ignored',()=>{
   const bad=structuredClone(pack); bad.definitions.mine.effects=[{kind:'supply'}];
   assert.throws(()=>createGame({},bad),e=>e.code==='UNSUPPORTED_EFFECT');

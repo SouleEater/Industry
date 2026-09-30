@@ -86,7 +86,7 @@ const html = read('apps/table/shell.html')
   .replace('/*STYLE*/', () => read('apps/table/style.css'))
   .replace('/*DATA*/', () => fs.readFileSync(images, 'utf8'))
   .replace('/*ENGINE*/', () => chunks.map(c => c.code).join('\n'))
-  .replace('/*UIA*/', () => read('apps/table/ui.js'))
+  .replace('/*UIA*/', () => read('apps/table/ui.js') + '\n' + read('apps/table/notify.js'))
   .replace('/*UIB*/', () => read('apps/table/online.js'));
 
 const out = path.join(root, 'dist', 'table.html');
