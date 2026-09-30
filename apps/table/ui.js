@@ -42,9 +42,14 @@ const me = () => {
   return ui.seat == null ? s.players[s.players.findIndex(p => p.id === currentActor(s))] ?? s.players[0] : s.players[ui.seat];
 };
 const myTurn = () => { const s = S(); return s && currentActor(s) === me()?.id; };
-const capOf = id => PACK.capitalists.find(c => c.id === id);
+const capOf = id => [...PACK.capitalists, ...(PACK.expansionCapitalists ?? [])].find(c => c.id === id);
 const capImage = c => keyOf(c.images[0]);
 const src = key => `data:image/webp;base64,${CARD_IMAGES[key]}`;
+/** Пропорции берутся из самой картинки: у карт издателя и у макетов они разные. */
+const setRatio = (node, key) => {
+  const size = typeof CARD_SIZES !== 'undefined' ? CARD_SIZES[key] : null;
+  if (size) node.style.setProperty('--card-ratio', `${size[0]} / ${size[1]}`);
+};
 
 let toastTimer;
 function toast(text) {
@@ -55,10 +60,23 @@ function toast(text) {
 }
 
 /* ---------- ресурсы ---------- */
+/* Значки повторяют игровые: уголь — тёмный куб с огнём, металл — слиток,
+   нефть — бочка, деньги — монета, модернизация — шестерня. */
+const ICONS = {
+  coal: '<svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4z" fill="#2a2a30" stroke="#0a0a0c" stroke-width="1.2"/><path d="M12 3v18M3 7l9 4 9-4" stroke="#0a0a0c" stroke-width="1" fill="none"/><path d="M7 12l2 3-2 2-2-2zM17 12l2 3-2 2-2-2z" fill="#ff7a3a"/></svg>',
+  metal: '<svg viewBox="0 0 24 24"><path d="M2 15l4-8h12l4 8-2 3H4z" fill="#8fb1cf" stroke="#2b4560" stroke-width="1.2" stroke-linejoin="round"/><path d="M6 7l-2 8h16l-2-8" fill="#c7dcee" opacity=".65"/><path d="M4 15h16" stroke="#2b4560" stroke-width="1"/></svg>',
+  oil: '<svg viewBox="0 0 24 24"><rect x="4.5" y="3" width="15" height="18" rx="3.5" fill="#5b5f66" stroke="#141518" stroke-width="1.2"/><path d="M4.7 8h14.6M4.7 16h14.6" stroke="#141518" stroke-width="1.1"/><path d="M12 9.6c-1.6 2-2.3 2.9-2.3 4a2.3 2.3 0 004.6 0c0-1.1-.7-2-2.3-4z" fill="#d7a35a"/></svg>',
+  money: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" fill="#e7b552" stroke="#8a5c14" stroke-width="1.3"/><circle cx="12" cy="12" r="6.6" fill="none" stroke="#9c6a1a" stroke-width="1"/><path d="M10.2 7.4v9.2M10.2 7.4h2.5a2.1 2.1 0 010 4.2h-2.5m2.7 0a2.4 2.4 0 010 5h-2.7" stroke="#6b430b" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>',
+  upgrade: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.2" fill="none" stroke="#c98d4c" stroke-width="4.2" stroke-dasharray="3.2 3.2"/><circle cx="12" cy="12" r="7" fill="#9a9aa2" stroke="#3a3a42" stroke-width="1.2"/><circle cx="12" cy="12" r="3" fill="#1b2530" stroke="#3a3a42" stroke-width="1"/></svg>',
+};
+ICONS.flip = '<svg viewBox="0 0 24 24"><rect x="3.5" y="2" width="17" height="20" rx="3" fill="#8fd06a" stroke="#3b6b20" stroke-width="1.4"/><path d="M8 16V10a4 4 0 018 0v3M13.5 11.5L16 14l2.5-2.5" fill="none" stroke="#173a08" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+ICONS.bolt = '<svg viewBox="0 0 24 24"><path d="M13.5 2L5 13.5h6L9.5 22 19 9.5h-6.2z" fill="#f0c94a" stroke="#7a5a08" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+ICONS.swap = '<svg viewBox="0 0 24 24"><path d="M4 9h13l-3-3M20 15H7l3 3" fill="none" stroke="#e7eef4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const RES_TITLE = { coal: 'Уголь', metal: 'Металл', oil: 'Нефть', upgrade: 'Улучшение', money: 'Деньги' };
 function resHtml(kind, value, opts = {}) {
   const zero = !value && !opts.keepZero ? ' zero' : '';
   const label = `${value} ${RES_NAME[kind]}`;
-  return `<span class="res ${kind}${zero}" title="${label}" aria-label="${label}"><span class="pip"></span><span class="num">${value}</span></span>`;
+  return `<span class="res ${kind}${zero}" title="${label}" aria-label="${label}"><span class="ico">${ICONS[kind]}</span><span class="num">${value}</span><span class="lbl">${RES_TITLE[kind]}</span></span>`;
 }
 function bundleHtml(values, mult = 1) {
   const parts = Object.entries(values || {}).filter(([, v]) => v > 0);
@@ -70,7 +88,7 @@ function effectHtml(e) {
   if (e.kind === 'supply') return `<span class="bolt">⚡</span>${effectHtml(e.of)}<span class="cap">однократно</span>`;
   if (['count-cards', 'operation-bonus', 'upgrade-next', 'text', 'permanent'].includes(e.kind))
     return `<span>${esc(e.text ?? '')}</span>`;
-  if (e.kind === 'upgrade') return `${bundleHtml({ coal: 1, upgrade: 1 })}<span class="to">→</span><span>модернизация</span>`;
+  if (e.kind === 'upgrade') return `${bundleHtml(e.cost ?? { coal: 1, upgrade: 1 })}<span class="to">→</span><span class="res flip" title="Модернизация"><span class="ico">${ICONS.flip}</span></span>${e.limit ? `<span class="cap">до ${e.limit} раз</span>` : ''}`;
   if (e.kind === 'gain') return bundleHtml(e.gain);
   const cap = e.limitUnknown ? '<span class="cap">кратность не напечатана</span>'
     : e.limit > 1 ? `<span class="cap">до ${e.limit} раз</span>` : '';
@@ -93,6 +111,110 @@ function faceKey(card) {
   const d = DEFS[card.definitionId];
   return keyOf(d.images[card.upgraded && d.images[1] ? 1 : 0]);
 }
+
+/* Иллюстраций «Интербеллума» в проекте нет (материалы издателя), поэтому сцена
+   рисуется схематично в цветах ресурса, который карта даёт. */
+const TONE_TITLE = { coal: 'Шахта', metal: 'Литейная', oil: 'Нефтяная вышка', money: 'Торговый дом', upgrade: 'Мастерская' };
+const TONE_PAL = {
+  coal:  { sky: ['#e8c9a4', '#b4643a'], far: '#7d4630', near: '#2b1a14', glow: '#ff9350' },
+  metal: { sky: ['#cfdbe4', '#7f9bb0'], far: '#4c6478', near: '#1e2a35', glow: '#ffb15c' },
+  oil:   { sky: ['#f0d3a0', '#c98d4c'], far: '#8b5b2b', near: '#2e2014', glow: '#ffd48a' },
+  money: { sky: ['#dfe4c2', '#8fa46a'], far: '#5f7448', near: '#22301f', glow: '#ffe28a' },
+  upgrade: { sky: ['#d8e0da', '#8db3a0'], far: '#557a6a', near: '#1f2f29', glow: '#c9f0d8' },
+};
+function toneOf(d) {
+  if (d.tone && TONE_PAL[d.tone]) return d.tone;
+  const gain = [d.compensation, ...d.effects].map(e => e?.gain && Object.keys(e.gain)[0]).find(Boolean);
+  return TONE_PAL[gain] ? gain : 'coal';
+}
+function sceneSvg(tone, seed) {
+  const c = TONE_PAL[tone], id = `g${seed}${tone}`;
+  const flip = seed % 2 ? ' transform="translate(200 0) scale(-1 1)"' : '';
+  let art = '';
+  if (tone === 'coal') {
+    art = `<path d="M0 92 L40 62 L78 84 L118 54 L160 80 L200 60 V120 H0z" fill="${c.far}"/>
+      <path d="M0 104 L60 88 L130 100 L200 84 V120 H0z" fill="${c.near}"/>
+      <path d="M118 104 L132 58 M148 104 L136 58 M124 82 H142 M121 94 H145" stroke="${c.near}" stroke-width="3" fill="none"/>
+      <circle cx="134" cy="52" r="9" fill="none" stroke="${c.near}" stroke-width="3"/><circle cx="134" cy="52" r="2.5" fill="${c.near}"/>
+      <path d="M40 106 h30 l-5 -12 h-20z" fill="#0d0908"/><circle cx="48" cy="108" r="3.5" fill="${c.glow}"/><circle cx="64" cy="108" r="3.5" fill="${c.glow}"/>`;
+  } else if (tone === 'oil') {
+    art = `<path d="M0 100 Q60 90 100 98 T200 94 V120 H0z" fill="${c.far}"/>
+      <path d="M0 108 H200 V120 H0z" fill="${c.near}"/>
+      <path d="M92 108 L106 32 L120 108 M96 90 H116 M99 70 H113 M102 52 H110 M94 96 L116 76 M118 96 L98 76 M100 76 L112 58" stroke="${c.near}" stroke-width="2.6" fill="none"/>
+      <path d="M40 108 v-22 l26 -10 M30 86 l40 -14 l5 6 l-38 14z" stroke="${c.near}" stroke-width="2.4" fill="${c.near}"/>
+      <path d="M150 108 L156 62 L162 108 M152 92 H160" stroke="${c.near}" stroke-width="2" fill="none"/>`;
+  } else if (tone === 'money') {
+    art = `<path d="M0 100 H200 V120 H0z" fill="${c.near}"/>
+      <rect x="14" y="58" width="34" height="46" fill="${c.far}"/><rect x="54" y="38" width="42" height="66" fill="${c.near}"/>
+      <rect x="102" y="52" width="30" height="52" fill="${c.far}"/><rect x="138" y="30" width="46" height="74" fill="${c.near}"/>
+      ${[[62, 46], [78, 46], [62, 62], [78, 62], [146, 38], [162, 38], [146, 54], [162, 54], [146, 70], [110, 60], [110, 76]].map(([x, y]) => `<rect x="${x}" y="${y}" width="8" height="8" fill="${c.glow}" opacity=".85"/>`).join('')}
+      <path d="M54 38 L75 22 L96 38z" fill="${c.far}"/>`;
+  } else {
+    art = `<path d="M0 96 L50 78 L100 92 L160 70 L200 86 V120 H0z" fill="${c.far}"/>
+      <path d="M0 106 H200 V120 H0z" fill="${c.near}"/>
+      <rect x="22" y="62" width="70" height="44" fill="${c.near}"/><rect x="100" y="76" width="56" height="30" fill="${c.near}"/>
+      <rect x="34" y="34" width="9" height="30" fill="${c.near}"/><rect x="60" y="42" width="9" height="22" fill="${c.near}"/>
+      <rect x="118" y="52" width="9" height="26" fill="${c.near}"/>
+      <circle cx="40" cy="26" r="9" fill="#fff" opacity=".35"/><circle cx="52" cy="17" r="12" fill="#fff" opacity=".28"/><circle cx="124" cy="44" r="8" fill="#fff" opacity=".3"/>
+      <rect x="32" y="74" width="10" height="9" fill="${c.glow}"/><rect x="52" y="74" width="10" height="9" fill="${c.glow}"/><rect x="72" y="74" width="10" height="9" fill="${c.glow}"/>`;
+  }
+  return `<svg class="scene" viewBox="0 0 200 120" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.sky[0]}"/><stop offset="1" stop-color="${c.sky[1]}"/></linearGradient></defs>
+    <rect width="200" height="120" fill="url(#${id})"/>
+    <circle cx="${seed % 2 ? 40 : 160}" cy="30" r="14" fill="${c.glow}" opacity=".55"/>
+    <g${flip}>${art}</g></svg>`;
+}
+/** Название карты: у карт дополнения в данных лишь номер, поэтому даём понятное имя. */
+function cardTitle(d, id) {
+  if (!d.expansion) return d.name;
+  const n = String(id ?? d.name).match(/(\d+)\s*$/)?.[1] ?? '';
+  return `Интербеллум ${Number(n) + 1 || ''}`.trim();
+}
+function plainFace(card, d) {
+  const tone = toneOf(d), num = Number(String(card.definitionId).match(/(\d+)\s*$/)?.[1] ?? 0);
+  const rows = [...d.effects, ...(card.upgraded ? d.advanced : [])];
+  const next = card.upgraded ? '' : `<div class="pf-next"><span class="pf-tag">после модернизации</span>${
+    d.advanced.map(r => `<div class="recipe dim-row">${effectHtml(r)}</div>`).join('')}</div>`;
+  return `<div class="pf-title">${esc(cardTitle(d, card.definitionId))}</div>
+    <div class="pf-scene">${sceneSvg(tone, num)}</div>
+    <div class="pf-body">
+      <div class="pf-row comp"><span class="pf-tag">компенсация</span><span class="recipe">${effectHtml(d.compensation)}</span></div>
+      ${rows.map((r, i) => `<div class="pf-row">${i === 0 ? '<span class="pf-tag">производство</span>' : ''}<span class="recipe">${effectHtml(r)}</span></div>`).join('')}
+      ${next}
+    </div>`;
+}
+
+/* Карта рисуется по данным: иллюстрация вырезана из скана, строки эффектов — наши,
+   поэтому после улучшения сторона меняется по-настоящему (компенсации сверху нет). */
+const hasArt = d => d.images.length > 0 && typeof CARD_IMAGES !== 'undefined' && Boolean(CARD_IMAGES['art-' + keyOf(d.images[0])]);
+const TEXT_KINDS = ['count-cards', 'operation-bonus', 'upgrade-next', 'text', 'permanent', 'take-stored'];
+function rowHtml(e, cls = '') {
+  const text = TEXT_KINDS.includes(e.kind);
+  return `<div class="pf-row ${text ? 'txt' : ''} ${e.kind === 'permanent' ? 'perm' : ''} ${cls}"><span class="recipe">${effectHtml(e)}</span></div>`;
+}
+function drawnFace(card, d) {
+  const up = card.upgraded, start = d.kind === 'startup';
+  const top = start
+    ? `<span class="df-tag">на старте</span>${bundleHtml(d.starting)}`
+    : up ? '<span class="df-ribbon">★ улучшено</span>'
+      : `<span class="df-tag">компенсация</span><span class="recipe">${effectHtml(d.compensation)}</span>`;
+  const adv = (d.advanced ?? []).map(e => rowHtml(e, up ? 'adv on' : 'adv off')).join('');
+  return `<div class="df-top">${top}</div>
+    <div class="df-art"><img src="${src('art-' + keyOf(d.images[0]))}" alt=""></div>
+    <div class="df-body">
+      ${d.effects.map(e => rowHtml(e)).join('')}
+      ${adv ? `<div class="df-sep"><span>${up ? 'улучшенная сторона' : 'после улучшения'}</span></div>${adv}` : ''}
+    </div>`;
+}
+
+function bidPileHtml(lot) {
+  const s = S();
+  return lot.bids.map(b => {
+    const p = s.players.find(x => x.id === b.playerId);
+    return discHtml({ id: b.discId, value: b.value, kind: b.kind, bonus: b.bonus }, p.seat, { small: true });
+  }).join('');
+}
+
 function cardNode(card, { owner = null, lot = null, mode = 'view' } = {}) {
   const s = S(), d = DEFS[card.definitionId];
   const node = el('div', 'card');
@@ -104,24 +226,26 @@ function cardNode(card, { owner = null, lot = null, mode = 'view' } = {}) {
   if (used) node.classList.add('spent');
   if (running) node.classList.add('running');
 
+  const body = el('div', 'card-body');
   const face = el('div', 'card-face');
-  if (d.images.length) {
+  if (hasArt(d)) {
+    face.classList.add('plain-face', 'drawn');
+    face.style.setProperty('--card-ratio', '7 / 10');
+    face.innerHTML = drawnFace(card, d);
+    face.setAttribute('role', 'img');
+    face.setAttribute('aria-label', `${cardTitle(d, card.definitionId)}${card.upgraded ? ', улучшенная сторона' : ''}`);
+    // Переворот показываем один раз — в кадре, где карта стала улучшенной.
+    if (ui.seenUp?.[card.id] === false && card.upgraded) face.classList.add('flip-in');
+  } else if (d.images.length) {
     const img = el('img');
     img.src = src(faceKey(card));
+    setRatio(face, faceKey(card));
+    if (/^(co-ib|st-off|uni|char)-/.test(faceKey(card))) img.classList.add('trim');
     img.alt = `${d.name}${card.upgraded ? ', улучшенная сторона' : ''}`;
-    img.loading = 'lazy';
     face.append(img);
   } else {
-    // Карты «Интербеллума» идут без иллюстраций: правила и компоненты издателя
-    // защищены авторским правом, поэтому рисуем только значения.
     face.classList.add('plain-face');
-    const rows = [...d.effects, ...(card.upgraded ? d.advanced : [])];
-    face.innerHTML = `
-      <div class="uni-head">${esc(d.name)}</div>
-      <div class="plain-comp"><span class="uni-key">компенсация</span><span class="recipe">${effectHtml(d.compensation)}</span></div>
-      <div class="plain-rows">${rows.map(r => `<div class="recipe">${effectHtml(r)}</div>`).join('')}</div>
-      ${card.upgraded ? '' : `<div class="plain-next"><span class="uni-key">после модернизации</span>${
-        d.advanced.map(r => `<div class="recipe dim-row">${effectHtml(r)}</div>`).join('')}</div>`}`;
+    face.innerHTML = plainFace(card, d);
   }
 
   const onCard = card.managers ?? (card.manager ? [card.manager] : []);
@@ -133,52 +257,112 @@ function cardNode(card, { owner = null, lot = null, mode = 'view' } = {}) {
   if (card.local && Object.values(card.local).some(v => v > 0))
     face.append(el('span', 'card-tag local', `на карте: ${Object.entries(card.local)
       .filter(([, v]) => v > 0).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(', ')}`));
-  if (card.upgraded) face.append(el('span', 'card-tag up', 'улучшено'));
-  else if (d.kind === 'startup') face.append(el('span', 'card-tag', 'стартовое'));
   if (d.unknownLimit) {
     const w = el('span', 'card-tag warn', '!');
     w.title = 'На макете этой карты не напечатана кратность одного обмена. В игре он идёт ×1 и требует сверки с оригиналом.';
     face.append(w);
   }
-  node.append(face);
+  body.append(face);
 
-  if (lot?.bids.length) {
-    const pile = el('div', 'bid-pile');
-    pile.innerHTML = lot.bids.map(b => {
-      const p = s.players.find(x => x.id === b.playerId);
-      return discHtml({ id: b.discId, value: b.value, kind: b.kind, bonus: b.bonus }, p.seat, { small: true });
-    }).join('');
-    node.append(pile);
+  if (mode !== 'zoom') {
+    const zb = el('button', 'zoom-btn', '⤢');
+    zb.type = 'button'; zb.title = 'Посмотреть карту крупно'; zb.setAttribute('aria-label', 'Посмотреть карту крупно');
+    zb.addEventListener('click', ev => { ev.stopPropagation(); zoomCard(card); });
+    body.append(zb);
   }
+  if (lot?.bids.length) body.append(el('div', 'bid-pile', bidPileHtml(lot)));
+  node.append(body);
+
+  const state = card.borrowed ? '<span class="cn-state">карта соседа</span>' : card.upgraded ? '<span class="cn-state up">улучшено</span>'
+    : d.kind === 'startup' ? '<span class="cn-state">стартовое</span>' : '';
+  node.append(el('div', 'card-name', `<span>${esc(cardTitle(d, card.definitionId))}</span>${state}`));
   return node;
 }
 
 const MANAGERS = Object.fromEntries([...PACK.managers, PACK.personalManager].filter(Boolean).map(m => [m.id, m]));
 
-/* ---------- карта университета: иллюстраций нет, рисуем значения ---------- */
+/* ---------- жетон управляющего, нарисованный ---------- */
+function mgrIconKey(m) {
+  const e = m.effect ?? {};
+  const resource = Object.keys(e.gain ?? e.options?.[0] ?? {})[0];
+  if (resource) return resource;
+  if (e.kind === 'upgrade-self') return 'flip';
+  if (e.kind === 'repeat-supply') return 'bolt';
+  return 'swap';
+}
+function managerTokenHtml(m, { mini = false } = {}) {
+  const icon = `<span class="mt-ico">${ICONS[mgrIconKey(m)]}</span>`;
+  return mini
+    ? `<span class="mgr-token mini" data-mgr="${esc(m.id)}" title="${esc(m.text)}" role="button" tabindex="0">${icon}</span>`
+    : `<div class="mgr-token">${icon}<div class="mt-body"><div class="mt-kind">Жетон управляющего${m.personal ? ' · личный' : ''}</div><div class="mt-text">${esc(m.text)}</div></div></div>`;
+}
+
+/* ---------- карточка промышленника, нарисованная ---------- */
+const portraitKey = c => 'port-' + keyOf(c.images?.[0] ?? '');
+const hasPortrait = c => Boolean(c?.images?.length && typeof CARD_IMAGES !== 'undefined' && CARD_IMAGES[portraitKey(c)]);
+function heroCardHtml(c, { compact = false, big = false } = {}) {
+  const img = hasPortrait(c) ? `<img class="hc-portrait" src="${src(portraitKey(c))}" alt="Портрет: ${esc(c.name)}">` : '';
+  return `<div class="hero-card ${compact ? 'compact' : ''} ${big ? 'big' : ''}" data-cap="${c.id}">${img}
+    <div class="hc-text"><div class="hc-kind">Промышленник</div><div class="hc-name">${esc(c.name)}</div><p>${esc(c.text)}</p></div></div>`;
+}
+function zoomHero(c) {
+  const z = $('#zoom');
+  z.innerHTML = heroCardHtml(c, { big: true });
+  z.onclick = () => z.close();
+  z.showModal();
+}
+function zoomToken(id) {
+  const m = MANAGERS[id]; if (!m) return;
+  const z = $('#zoom');
+  z.innerHTML = `<div class="big-token">${managerTokenHtml(m)}</div>`;
+  z.onclick = () => z.close();
+  z.showModal();
+}
+
+/* ---------- карта университета ---------- */
+const UNI_SIDES = Object.fromEntries(PACK.universities.flatMap(u => u.sides).map(side => [side.id, side]));
+function optionKind(e) { return e.kind === 'gain' ? 'получить' : 'обменять'; }
 function tableNode(lot) {
-  const s = S();
   const node = el('div', 'card university');
   node.dataset.lot = lot.id;
-  const face = el('div', 'card-face uni-face');
+  const body = el('div', 'card-body');
+  const face = el('div', 'card-face uni-face plain-face drawn uni');
+  face.style.setProperty('--card-ratio', '7 / 10');
+  const side = UNI_SIDES[lot.table.sideId];
+  const [a, b] = lot.table.options;
   face.innerHTML = `
-    <div class="uni-head">Университет</div>
-    <div class="uni-note">Компенсацию можно разделить между двумя вариантами</div>
-    <div class="uni-opt"><span class="uni-key">либо</span><span class="recipe">${effectHtml(lot.table.options[0])}</span></div>
-    <div class="uni-opt"><span class="uni-key">либо</span><span class="recipe">${effectHtml(lot.table.options[1])}</span></div>
-    <div class="uni-token">${lot.token
-      ? `<b>Жетон управляющего</b><br>${esc(MANAGERS[lot.token].text)}`
-      : '<b>Жетон уже забрали</b>'}</div>`;
-  node.append(face);
-  if (lot.bids.length) {
-    const pile = el('div', 'bid-pile');
-    pile.innerHTML = lot.bids.map(b => {
-      const p = s.players.find(x => x.id === b.playerId);
-      return discHtml({ id: b.discId, value: b.value, kind: b.kind, bonus: b.bonus }, p.seat, { small: true });
-    }).join('');
-    node.append(pile);
-  }
+    <div class="pf-title">Университет</div>
+    <div class="uni-opts">
+      <div class="uo-head">Компенсация на выбор</div>
+      <div class="uni-opt"><span class="uo-tag">вариант 1 · ${optionKind(a)}</span><span class="recipe">${effectHtml(a)}</span></div>
+      <div class="uo-or"><span>либо</span></div>
+      <div class="uni-opt"><span class="uo-tag">вариант 2 · ${optionKind(b)}</span><span class="recipe">${effectHtml(b)}</span></div>
+      <p class="uo-note">Единицы компенсации можно делить между вариантами как угодно.</p>
+    </div>
+    ${side?.image && CARD_IMAGES['art-' + side.image] ? `<div class="df-art"><img src="${src('art-' + side.image)}" alt=""></div>` : ''}`;
+  body.append(face);
+  if (lot.bids.length) body.append(el('div', 'bid-pile', bidPileHtml(lot)));
+  node.append(body);
+  node.append(tokenStrip(lot.token));
+  node.append(el('div', 'card-name', '<span>Университет</span>'));
   return node;
+}
+/** Жетон управляющего под картой университета. */
+function tokenStrip(tokenId) {
+  const box = el('div', 'uni-token');
+  const m = tokenId ? MANAGERS[tokenId] : null;
+  box.innerHTML = m ? managerTokenHtml(m) : '<b>Жетон управляющего</b> уже забрали';
+  return box;
+}
+
+function zoomCard(card) {
+  const z = $('#zoom');
+  z.innerHTML = '';
+  const n = cardNode(card, { mode: 'zoom' });
+  n.classList.add('big');
+  z.append(n);
+  z.onclick = () => z.close();
+  z.showModal();
 }
 
 /* ---------- расчёт ставки: главный элемент интерфейса ---------- */
@@ -232,49 +416,66 @@ function ledgerNode(lot) {
 /* ---------- верхняя планка ---------- */
 function renderRail() {
   const s = S();
-  const phases = { auction: 'аукцион', settlement: 'разбор лотов', planning: 'планирование линии', production: 'производство', finished: 'итог' };
+  const steps = [['auction', 'Аукцион'], ['settlement', 'Разбор'], ['planning', 'План'], ['production', 'Производство']];
+  const at = s.phase === 'finished' ? 4 : Math.max(0, steps.findIndex(([k]) => k === s.phase));
   $('#rail').innerHTML = `
     <span class="logo">ИНДУ<b>С</b>ТРИЯ</span>
-    <span class="rounds" aria-label="Раунд ${s.round} из 4">${[1, 2, 3, 4].map(r =>
-      `<i class="${r < s.round ? 'done' : r === s.round ? 'now' : ''}"></i>`).join('')}</span>
-    <span class="phase-name">раунд ${s.round} · <b>${phases[s.phase]}</b></span>
+    <span class="round-badge" aria-label="Раунд ${s.round} из 4">Раунд <b>${s.round}</b> из 4</span>
+    <ol class="steps" aria-label="Этапы раунда">${steps.map(([k, t], i) =>
+      `<li class="${i < at ? 'done' : i === at ? 'now' : ''}"><i>${i + 1}</i><span>${t}</span></li>`).join('')}</ol>
     <span class="spacer"></span>
     ${ui.online ? `<button class="chip live" data-open="invite">стол ${esc(ui.online.code)}</button>` : ''}
-    <button class="chip" data-open="gallery">Карты</button>
-    <button class="chip" data-open="log">Журнал</button>
-    <button class="chip" data-open="setup">Новая партия</button>`;
+    <button class="chip" data-open="help" title="Как играть">? <span class="wide">Как играть</span></button>
+    <button class="chip" data-open="gallery" title="Каталог карт">Карты</button>
+    <button class="chip" data-open="log" title="Журнал ходов">Журнал</button>
+    <button class="chip" data-open="setup" title="Начать новую партию">Новая <span class="wide">партия</span></button>`;
 }
 
 /* ---------- соперники ---------- */
+/** Ваша панель наверху: промышленник с описанием и ваши жетоны управляющих. */
+function myPanel() {
+  const p = me(), cap = p.capitalistId ? capOf(p.capitalistId) : null;
+  if (!cap && !p.managers.length) return null;
+  const node = el('div', 'me-panel');
+  node.style.setProperty('--seat', SEATS[p.seat % SEATS.length].base);
+  node.innerHTML = `${cap ? heroCardHtml(cap, { compact: true }) : ''}
+    ${p.managers.length ? `<div class="me-mgrs"><span class="cap">Ваши жетоны управляющих:</span>${
+      p.managers.map(id => MANAGERS[id] ? managerTokenHtml(MANAGERS[id], { mini: true }) : '').join('')}</div>` : ''}`;
+  return node;
+}
 function renderRivals() {
   const s = S(), mine = me();
   const box = $('#rivals');
   box.innerHTML = '';
+  const mp = myPanel();
+  if (mp) box.append(mp);
   for (const p of s.players) {
     if (p.id === mine.id) continue;
     const seat = SEATS[p.seat % SEATS.length];
     const node = el('div', 'rival');
     node.style.setProperty('--seat', seat.base);
+    const rcap = p.capitalistId ? capOf(p.capitalistId) : null;
     if (currentActor(s) === p.id) node.classList.add('acting');
+    const turn = currentActor(s) === p.id ? '<span class="turn-dot">ходит</span>' : '';
     if (s.phase === 'production' && p.done) node.classList.add('finished');
     const cap = p.capitalistId ? capOf(p.capitalistId) : null;
     const lastRoll = [...s.events].reverse().find(e => e.playerId === 'agent' && e.roll)?.roll;
     node.innerHTML = p.agent
       ? `<div class="rival-top">
-          <span class="rival-name">${esc(p.name)}</span>
+          <span class="rival-name">${esc(p.name)}</span>${turn}
           <span class="rival-cap" title="Агент базовой игры: бросок d6 выбирает предприятие, затем ставится минимальный легальный диск. Экономику не копит.">ставит сам</span>
         </div>
         <div class="rival-row"><span class="res"><span class="num" style="color:var(--frost)">${
           lastRoll ? 'последний бросок d6: ' + lastRoll : 'ещё не ходил'}</span></span></div>
         <div class="rival-row discs">${p.discs.map(d => discHtml(d, p.seat, { small: true })).join('')}</div>`
       : `<div class="rival-top">
-          <span class="rival-name">${esc(p.name)}</span>
-          ${cap ? `<span class="rival-cap" title="${esc(cap.text)}">${esc(cap.name)}</span>` : ''}
+          <span class="rival-name">${esc(p.name)}</span>${turn}
+          ${cap ? `<button type="button" class="rival-cap hero-link" data-cap="${cap.id}" title="${esc(cap.text)}">${hasPortrait(cap) ? `<img src="${src(portraitKey(cap))}" alt="">` : ''}${esc(cap.name)}</button>` : ''}
         </div>
         <div class="rival-row">
           ${resHtml('money', p.wallet.money, { keepZero: true })}
           ${['coal', 'metal', 'oil', 'upgrade'].map(k => resHtml(k, p.wallet[k])).join('')}
-          <span class="res" title="предприятий"><span class="num" style="color:var(--frost)">${p.cards.length} пр.</span></span>
+          <span class="rival-count" title="Предприятий в линии">🏭 ${p.cards.length}</span>
         </div>
         <div class="rival-row discs">${p.discs.map(d => discHtml(d, p.seat, { small: true })).join('')}</div>`;
     box.append(node);
@@ -289,8 +490,8 @@ function renderStage() {
   if (s.phase === 'auction' || s.phase === 'settlement') {
     const open = s.lots.filter(l => !l.resolved).length;
     head.innerHTML = s.phase === 'auction'
-      ? `<h2>ЛОТЫ РАУНДА</h2><span>${s.lots.length} предприятий · разбор пойдёт слева направо</span>`
-      : `<h2>РАЗБОР ЛОТОВ</h2><span>осталось ${open} — сначала компенсации, потом карта</span>`;
+      ? `<h2>Лоты раунда</h2><span>Нажмите на предприятие, чтобы поставить на него диск. Разбор идёт слева направо.</span>`
+      : `<h2>Разбор лотов</h2><span>Осталось ${open}. Сначала компенсации проигравшим, затем карта достаётся победителю.</span>`;
 
     s.lots.forEach((lot, i) => {
       const node = lot.kind === 'university' ? tableNode(lot) : cardNode(lot.card, { lot });
@@ -300,32 +501,16 @@ function renderStage() {
 
       if (s.phase === 'auction') {
         const focused = ui.focus === lot.id;
-        if (focused) node.classList.add('lifted');
+        if (focused) node.classList.add('lifted', 'picked');
         node.tabIndex = 0;
         node.style.cursor = 'pointer';
         node.addEventListener('click', ev => {
-          if (ev.target.closest('.card-cta')) return;
           ui.focus = ui.focus === lot.id ? null : lot.id;
           render();
+          requestAnimationFrame(() => document.querySelector('.card.picked')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
         });
         node.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); node.click(); } });
 
-        if (focused) {
-          node.append(ledgerNode(lot));
-          const p = me();
-          const disc = ui.disc && p.discs.find(d => d.id === ui.disc);
-          const value = disc ? (disc.kind === 'variable' ? ui.varValue : disc.value) : null;
-          const err = !myTurn() ? 'Сейчас ходит другой игрок'
-            : !disc ? 'Выберите диск' : bidError(s, p.id, disc.id, lot.id, value);
-          const cta = el('button', `card-cta ${err ? '' : 'go'}`, err ? esc(err) : `Поставить ${value}`);
-          cta.disabled = !!err;
-          cta.addEventListener('click', ev => {
-            ev.stopPropagation();
-            act({ type: 'Bid', discId: disc.id, lotId: lot.id, value });
-            ui.focus = null; ui.disc = null;
-          });
-          node.append(cta);
-        }
       }
       strip.append(node);
     });
@@ -334,10 +519,10 @@ function renderStage() {
 
   /* планирование и производство: сцена показывает чужие линии компактно */
   head.innerHTML = s.phase === 'planning'
-    ? '<h2>ЛИНИИ ИГРОКОВ</h2><span>порядок решает, каким сырьём вы сможете заплатить дальше</span>'
+    ? '<h2>Линии соперников</h2><span>Ниже вы расставляете свою линию: порядок решает, чем вы заплатите дальше.</span>'
     : s.phase === 'production'
-      ? '<h2>ЛИНИИ ИГРОКОВ</h2><span>предприятие работает один раз за раунд</span>'
-      : '<h2>ПАРТИЯ ОКОНЧЕНА</h2><span></span>';
+      ? '<h2>Линии соперников</h2><span>Каждое предприятие работает один раз за раунд.</span>'
+      : '<h2>Партия окончена</h2><span></span>';
 
   for (const p of s.players) {
     if (p.id === me().id || p.agent) continue;
@@ -371,11 +556,11 @@ function renderBoard() {
   $('#board-head').innerHTML = `
     <span class="you">
       <span class="you-name" style="color:${seat.lite}">${esc(p.name)}</span>
+      ${s.phase === 'finished' ? '' : myTurn() ? '<span class="turn-badge">ваш ход</span>' : '<span class="turn-badge wait">ждём соперника</span>'}
       ${cap ? `<button class="you-cap" data-cap="${cap.id}">${esc(cap.name)}</button>` : ''}
     </span>
-    ${p.managers.length ? `<span class="managers" title="Жетоны управляющих">${
-      p.managers.map(id => `<span class="token" title="${esc(MANAGERS[id].text)}">У</span>`).join('')}</span>` : ''}
-    <span class="vault">
+
+    <span class="vault labeled">
       ${resHtml('money', p.wallet.money, { keepZero: true })}
       ${['coal', 'metal', 'oil', 'upgrade'].map(k => resHtml(k, p.wallet[k], { keepZero: true })).join('')}
     </span>`;
@@ -402,10 +587,12 @@ function renderPrompt() {
     const pair = s.pendingPair?.playerId === p.id;   // только в режиме обновлённой карты «Интербеллума»
     const box = promptBox(pair
       ? 'Можно доставить дополнительную двойку Артура — но только <b>на другое предприятие</b>. Или пропустите: диск останется у вас.'
-      : ui.disc ? 'Теперь выберите предприятие: в карточке появится расчёт обоих исходов.'
+      : ui.disc && ui.focus ? 'Диск выбран. Можно выбрать другой:'
+      : ui.disc ? 'Теперь нажмите на предприятие: ниже появится расчёт обоих исходов.'
         : 'Выберите диск, затем предприятие. <b>Мелкий диск — это не проигрыш</b>, а заказ компенсации.');
 
     const row = el('span', 'discs');
+    row.append(el('span', 'cap', 'Ваши диски:'));
     p.discs.forEach(d => {
       if (pair && !d.bonus) return;
       const btn = el('span', '', discHtml(d, p.seat, { pickable: !d.used, chosen: ui.disc === d.id })).firstChild;
@@ -600,8 +787,73 @@ function managerPanel(card, p) {
 }
 
 function renderEffect() {
+  renderEffectMain();
+  extraPanels();
+}
+
+/** Панели способностей, которые доступны вне очереди строк: постоянная модернизация и «Сосед». */
+function extraPanels() {
+  const s = S(), p = me(), slot = $('#effect-slot');
+  if (s.phase !== 'production' || !myTurn() || p.done || s.production.active) return;
+
+  const holder = p.cards.some(c => !c.borrowed && (DEFS[c.definitionId].effects ?? []).concat(c.upgraded ? DEFS[c.definitionId].advanced ?? [] : [])
+    .some(r => r.kind === 'permanent' && r.rule === 'upgrade-on-gain'));
+  const targets = p.cards.filter(c => !c.upgraded && DEFS[c.definitionId].kind === 'company');
+  if (holder && p.wallet.upgrade > 0 && p.wallet.coal > 0 && targets.length) {
+    const box = el('div', 'effect upgrade-step');
+    box.append(el('div', 'effect-head', '<span>Постоянный эффект стартового предприятия: модернизация за жетон и уголь</span>'));
+    box.append(el('div', 'recipe', `${bundleHtml({ coal: 1, upgrade: 1 })}<span class="to">→</span><span>модернизация</span>`));
+    const row = el('div', 'counter');
+    targets.forEach(c => {
+      const btn = el('button', 'act', `Улучшить: ${esc(cardTitle(DEFS[c.definitionId], c.definitionId))}`);
+      btn.onclick = () => act({ type: 'Upgrade', cardId: c.id });
+      row.append(btn);
+    });
+    box.append(row); slot.append(box);
+  }
+
+  if (p.ability === 'use-neighbour-card' && !p.neighbourUsed && p.wallet.metal > 0 && p.cards.every(c => c.usedRound === s.round)) {
+    const humans = s.players.filter(x => !x.agent);
+    const right = humans.length > 1 ? humans[(humans.indexOf(p) - 1 + humans.length) % humans.length] : null;
+    const cards = right ? right.cards.filter(c => DEFS[c.definitionId].kind === 'company') : [];
+    if (cards.length) {
+      const box = el('div', 'effect');
+      box.append(el('div', 'effect-head', `<span>Сосед: 1 металл — использовать предприятие соседа справа (${esc(right.name)})</span>`));
+      const row = el('div', 'counter');
+      cards.forEach(c => {
+        const btn = el('button', 'act ghost', `${esc(cardTitle(DEFS[c.definitionId], c.definitionId))}${c.upgraded ? ' (улучшено)' : ''}`);
+        btn.onclick = () => act({ type: 'UseNeighbourCard', cardId: c.id });
+        row.append(btn);
+      });
+      box.append(row); slot.append(box);
+    }
+  }
+}
+
+function renderEffectMain() {
   const s = S(), p = me(), slot = $('#effect-slot');
   slot.innerHTML = '';
+
+  if (s.phase === 'auction' && ui.focus) {
+    const lot = s.lots.find(l => l.id === ui.focus);
+    if (lot) {
+      const wrap = el('div', 'bid-dock');
+      wrap.append(ledgerNode(lot));
+      const disc = ui.disc && p.discs.find(d => d.id === ui.disc);
+      const value = disc ? (disc.kind === 'variable' ? ui.varValue : disc.value) : null;
+      const err = !myTurn() ? 'Сейчас ходит другой игрок'
+        : !disc ? 'Сначала выберите диск' : bidError(s, p.id, disc.id, lot.id, value);
+      const cta = el('button', `card-cta ${err ? '' : 'go'}`, err ? esc(err) : `Поставить диск ${value}`);
+      cta.disabled = !!err;
+      cta.addEventListener('click', () => {
+        act({ type: 'Bid', discId: disc.id, lotId: lot.id, value });
+        ui.focus = null; ui.disc = null;
+      });
+      wrap.append(cta);
+      slot.append(wrap);
+    }
+    return;
+  }
 
   if (s.phase === 'settlement') {
     const pending = s.settlement.pending;
@@ -686,8 +938,7 @@ function renderEffect() {
 
   if (e.kind === 'upgrade') {
     const box = el('div', 'effect upgrade-step');
-    const cost = p.wallet.upgrade > 0 ? { coal: 1, upgrade: 1 }
-      : p.ability === 'metal-for-upgrade' ? { coal: 1, metal: 1 } : { coal: 1, upgrade: 1 };
+    const cost = upgradeCost(p, e.cost);
     const targets = p.cards.filter(c => !c.upgraded && DEFS[c.definitionId].kind === 'company');
     const paid = canPay(p.wallet, cost);
     const offer = targets.length > 0 && paid;
@@ -696,8 +947,8 @@ function renderEffect() {
       `<span>${offer ? 'Можно модернизировать предприятие' : 'Модернизация'} — строка ${a.index + 1} из ${list.length}</span>
        <span class="step">${list.map((_, i) => `<i class="${i <= a.index ? 'on' : ''}"></i>`).join('')}</span>`));
     box.append(el('div', 'recipe',
-      `${bundleHtml(cost)}<span class="to">\u2192</span><span>предприятие переворачивается на улучшенную сторону и получает новые строки</span>`));
-    if (p.ability === 'metal-for-upgrade' && p.wallet.upgrade === 0)
+      `${bundleHtml(cost)}<span class="to">\u2192</span><span>предприятие переворачивается на улучшенную сторону и получает новые строки${e.limit ? ` (не более ${e.limit - (a.used ?? 0)} раз)` : ''}</span>`));
+    if (p.ability === 'metal-for-upgrade' && (e.cost?.upgrade ?? 1) > 0 && p.wallet.upgrade === 0)
       box.append(el('div', 'ledger-note', 'Тимур: жетоны кончились, поэтому платите металлом.'));
 
     const row = el('div', 'counter');
@@ -767,8 +1018,8 @@ function renderLine() {
   const producing = s.phase === 'production' && myTurn() && !p.done;
 
   $('#line-head').textContent = planning
-    ? (s.config.productionChain ? 'Ваша линия — двигайте только новые предприятия' : 'Ваша линия — порядок можно менять свободно')
-    : `Ваша линия · ${p.cards.length} предприятий`;
+    ? (s.config.productionChain ? 'Ваша линия — «Цепочка»: старые карты закреплены, двигайте новые' : 'Ваша линия — порядок можно менять свободно')
+    : `Ваша линия · предприятий: ${p.cards.length}. Производство идёт слева направо.`;
 
   p.cards.forEach((card, i) => {
     const node = cardNode(card, { owner: p });
@@ -798,9 +1049,16 @@ function renderLine() {
       node.classList.add('movable');
       const row = el('div', 'move-row');
       const left = el('button', '', '←'), right = el('button', '', '→');
-      left.disabled = i === 0; right.disabled = i === p.cards.length - 1;
+      // В цепочке старые карты сохраняют взаимный порядок: две старые карты местами не меняются.
+      const pinned = j => s.config.productionChain && (p.lockedOrder ?? []).includes(p.cards[j]?.id) && (p.lockedOrder ?? []).includes(card.id);
+      left.disabled = i === 0 || pinned(i - 1); right.disabled = i === p.cards.length - 1 || pinned(i + 1);
+      const why = 'В цепочке нельзя менять порядок двух старых карт: двигайте новые.';
+      if (left.disabled && i > 0) left.title = why;
+      if (right.disabled && i < p.cards.length - 1) right.title = why;
       left.onclick = () => moveCard(i, i - 1);
       right.onclick = () => moveCard(i, i + 1);
+      if (s.config.productionChain && (p.lockedOrder ?? []).includes(card.id))
+        node.querySelector('.card-name').append(el('span', 'cn-state lock', '🔒 старая'));
       row.append(left, right);
       node.append(row);
     } else if (producing && ui.repeatPick && used) {
@@ -869,6 +1127,9 @@ const LOG_TEXT = {
   ConversionPerformed: (e, n) => `<b>${n(e.playerId)}</b>: ${Object.entries(e.cost).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(' + ')} → ${Object.entries(e.gain).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(', ')}`,
   CardUpgraded: (e, n) => `<b>${n(e.playerId)}</b> модернизирует предприятие`,
   CardRepeated: (e, n) => `<b>${n(e.playerId)}</b> повторяет предприятие за 2 угля`,
+  StoredOnCard: (e, n) => `<b>${n(e.playerId)}</b> кладёт ${RES_SHORT[e.resource]} на карту${e.reason === 'compensation' ? ' (компенсация за диск 3–4)' : ''}`,
+  TookFromCard: (e, n) => e.amount ? `<b>${n(e.playerId)}</b> забирает с карты ${e.amount} ${RES_SHORT[e.resource]}` : null,
+  NeighbourCardUsed: (e, n) => `<b>${n(e.playerId)}</b> тратит 1 металл и использует предприятие соседа`,
   CardCompleted: () => null,
   CardsArranged: () => null,
   GameFinished: () => 'Четвёртый раунд сыгран',
@@ -910,6 +1171,9 @@ function render() {
     }
     ui.prevWallets[p.id] = { ...p.wallet };
   }
+
+  ui.seenUp = {};
+  for (const p of s.players) for (const c of p.cards) ui.seenUp[c.id] = Boolean(c.upgraded);
 
   // разбор лотов идёт сам, с паузой — чтобы было видно, что происходит
   if (s.phase === 'settlement' && !s.settlement.pending && myTurn()) {
@@ -967,38 +1231,32 @@ function showResult() {
 
 /* ---------- каталог карт ---------- */
 function renderGallery(filter = 'company') {
+  const cap = c => ({ key: capImage(c), name: c.name, text: c.text });
   const groups = {
-    company: PACK.deck.filter((v, i, a) => a.indexOf(v) === i).map(id => DEFS[id]),
-    startup: PACK.startupIds.map(id => DEFS[id]),
-    capitalist: PACK.capitalists,
+    company: () => PACK.deck.filter((v, i, a) => a.indexOf(v) === i).flatMap(id => DEFS[id].images.map(i => ({ key: keyOf(i), name: DEFS[id].name }))),
+    expansion: () => PACK.expansionDeck.flatMap(id => DEFS[id].images.map(i => ({ key: keyOf(i), name: cardTitle(DEFS[id], id) }))),
+    startup: () => [...PACK.startupIds, ...PACK.expansionStartupIds].flatMap(id => DEFS[id].images.map(i => ({ key: keyOf(i), name: DEFS[id].name }))),
+    university: () => PACK.universities.flatMap(u => u.sides).filter(x => x.image).map(x => ({ key: x.image, name: 'Университет' })),
+    manager: () => [...PACK.managers, PACK.personalManager].filter(m => m?.image).map(m => ({ key: m.image, name: m.text, wide: true })),
+    capitalist: () => [...PACK.capitalists, ...PACK.expansionCapitalists].map(cap),
   };
+  const tabs = [['company', 'Предприятия'], ['expansion', 'Интербеллум'], ['startup', 'Стартовые'],
+    ['university', 'Университеты'], ['manager', 'Управляющие'], ['capitalist', 'Промышленники']];
   const body = $('#gallery-body');
   body.innerHTML = `
     <h2>Карты стола</h2>
-    <p>${PACK.observedCompanies} предприятий из ${PACK.expectedCompanies} в базовой коробке. Изображения — ваши макеты из репозитория.</p>
-    <div class="tabs">
-      ${[['company', 'Предприятия'], ['startup', 'Стартовые'], ['capitalist', 'Промышленники']]
-      .map(([k, t]) => `<button data-tab="${k}" class="${k === filter ? 'on' : ''}">${t}</button>`).join('')}
-    </div>
-    <div class="gallery"></div>`;
+    <p>Нажмите на карту, чтобы рассмотреть её крупно.</p>
+    <div class="tabs">${tabs.map(([k, t]) => `<button data-tab="${k}" class="${k === filter ? 'on' : ''}">${t}</button>`).join('')}</div>
+    <div class="gallery ${filter === 'capitalist' || filter === 'manager' ? 'wide' : ''}"></div>`;
   const grid = body.querySelector('.gallery');
-  if (filter === 'capitalist') {
-    for (const c of PACK.capitalists) {
-      const box = el('div');
-      box.innerHTML = `<img src="${src(capImage(c))}" alt="${esc(c.name)}">
-        <div style="font-size:12.5px;margin-top:6px"><b>${esc(c.name)}</b><br><span style="color:var(--frost)">${esc(c.text)}</span></div>`;
-      box.querySelector('img').onclick = () => zoom(capImage(c));
-      grid.append(box);
-    }
-  } else {
-    for (const d of groups[filter]) {
-      for (const key of d.images.map(keyOf)) {
-        const img = el('img');
-        img.src = src(key); img.alt = d.name; img.loading = 'lazy';
-        img.onclick = () => zoom(key);
-        grid.append(img);
-      }
-    }
+  for (const item of groups[filter]()) {
+    const box = el('div', 'g-item');
+    const img = el('img');
+    img.src = src(item.key); img.alt = item.name; img.loading = 'lazy';
+    img.onclick = () => zoom(item.key);
+    box.append(img);
+    if (item.text) box.append(el('div', 'g-cap', `<b>${esc(item.name)}</b><br><span>${esc(item.text)}</span>`));
+    grid.append(box);
   }
   body.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => renderGallery(b.dataset.tab));
 }
@@ -1009,6 +1267,61 @@ function zoom(key) {
 }
 
 /* ---------- новая партия ---------- */
+function maybeHelp() {
+  try { if (!localStorage.getItem('industry.table.helped')) { localStorage.setItem('industry.table.helped', '1'); showHelp(); } } catch { showHelp(); }
+}
+/** Показывает, кому какой промышленник и стартовое предприятие достались при раздаче. */
+function showDeal() {
+  const s = S();
+  $('#deal-body').innerHTML = `<h2>Раздача</h2>
+    <p>Каждый получил стартовое предприятие и промышленника. Способность промышленника действует всю партию; посмотреть её можно наверху экрана.</p>
+    <div class="deal-list">${s.players.filter(x => !x.agent).map(p => {
+      const c = p.capitalistId ? capOf(p.capitalistId) : null;
+      const st = DEFS[p.cards[0].definitionId];
+      return `<div class="deal-row" style="--seat:${SEATS[p.seat % SEATS.length].base}">
+        <div class="deal-name">${esc(p.name)}</div>
+        ${c ? heroCardHtml(c) : ''}
+        <div class="deal-start">Стартовое предприятие: <b>${esc(st.name)}</b> · ресурсы на старте: ${bundleHtml(st.starting)}</div>
+      </div>`;
+    }).join('')}</div>
+    <div class="sheet-actions"><button class="act" data-close>К столу</button></div>`;
+  $('#deal').showModal();
+}
+function showHelp() {
+  $('#help-body').innerHTML = `
+    <h2>Как играть</h2>
+    <p>Побеждает тот, у кого после четвёртого раунда больше денег. Каждый раунд состоит из четырёх этапов.</p>
+    <ol class="how">
+      <li><b>Аукцион.</b> Выберите один из своих дисков, затем нажмите на предприятие и поставьте диск. Чей диск больше, тот и заберёт предприятие.</li>
+      <li><b>Разбор.</b> Кто проиграл лот, получает <em>компенсацию</em> с карты: столько операций, какой номинал у его диска. Мелкий диск — это не проигрыш, а заказ компенсации.</li>
+      <li><b>План.</b> Расставьте свою линию предприятий. Порядок важен: производство идёт слева направо, и от него зависит, чем вы заплатите дальше.</li>
+      <li><b>Производство.</b> Запускайте предприятия по очереди: каждое обменивает одни ресурсы на другие. Каждое работает один раз за раунд.</li>
+    </ol>
+    <h3 class="how-h">Что означают значки</h3>
+    <div class="legend">${['money', 'coal', 'metal', 'oil', 'upgrade'].map(k =>
+      `<span class="res ${k} labeled">${'<span class="ico">' + ICONS[k] + '</span><span class="lbl">' + RES_TITLE[k] + '</span>'}</span>`).join('')}</div>
+    <p class="how-note">Модернизация переворачивает предприятие на улучшенную сторону. Стрелка на карте — «отдаёте → получаете», число рядом с «×» — сколько раз можно повторить обмен.</p>
+    <details class="more">
+      <summary>Подробные правила</summary>
+      <div class="rules">
+        <h3>Подготовка</h3>
+        <p>Каждый получает случайное стартовое предприятие и берёт ресурсы с его верхней полосы, комплект дисков 1–4 и (если играете с промышленниками) карту промышленника. Первый игрок выбирается случайно.</p>
+        <h3>Аукцион</h3>
+        <p>В ряд выкладывают карт по числу игроков плюс четыре: вдвоём 6, втроём 7, вчетвером 8. Игроки по очереди кладут по одному диску на карту. Нельзя класть диск на карту, где уже лежит ваш диск или диск с таким же значением. Если ходить некуда, ход пропускается.</p>
+        <h3>Итоги аукциона</h3>
+        <p>Карты разбираются слева направо. Предприятие получает владелец самого большого диска. Все остальные получают компенсацию из верхней части карты: если это добыча, ресурсы выдаются столько раз, каково значение диска; если переработка, то её можно применить до стольких раз. Ресурсы, полученные с карты слева, можно потратить на карте справа. Карта без дисков сбрасывается. Затем все забирают свои диски.</p>
+        <h3>Производство</h3>
+        <p>Каждое предприятие работает один раз за раунд, порядок выбираете вы. На обычной стороне действуют обычные эффекты (яркие символы), после модернизации — ещё и продвинутые. Эффекты одной карты идут сверху вниз, чужой эффект между ними вставить нельзя. Верхняя строка стартового предприятия даёт жетон модернизации, нижняя позволяет за жетон и уголь модернизировать любое число ваших карт. Стартовое предприятие модернизировать нельзя; уже отработавшая карта в этом раунде второй раз не работает, даже если её модернизировали.</p>
+        <h3>Конец раунда и игры</h3>
+        <p>Жетон первого игрока переходит соседу слева. После четвёртого раунда побеждает тот, у кого больше денег. При равенстве побеждает тот, у кого больше карт, затем больше ресурсов.</p>
+        <h3>«Интербеллум»</h3>
+        <p><b>Диск переменного капитала</b>: его значение равно числу потраченного угля. <b>Университеты</b> лежат в конце ряда: победитель забирает с них жетон управляющего, а компенсацию можно разделить между двумя вариантами. <b>Управляющие</b> в фазе производства кладутся по одному на карту и работают как дополнительный эффект; в конце раунда вы забираете их обратно. <b>Поставки</b> (значок молнии) применяются один раз сразу после получения или модернизации карты. <b>Постоянные эффекты</b> (на синем фоне) действуют всё время, пока карта у вас.</p>
+      </div>
+    </details>
+    <div class="sheet-actions"><button class="act" data-close>Понятно, играем</button></div>`;
+  $('#help').showModal();
+}
+
 function openSetup() {
   const form = $('#setup-form');
   const field = name => form.querySelector(`[name="${name}"]`);
@@ -1029,6 +1342,7 @@ function openSetup() {
       ui.prevWallets = {};
       save(); render();
       $('#setup').close();
+      if (state.players.some(x => x.capitalistId)) showDeal(); else maybeHelp();
     } catch (err) { toast(err.message); }
   };
   const sync = () => {
@@ -1095,6 +1409,7 @@ function bindShell() {
     if (open === 'log') $('#drawer').classList.toggle('open');
     if (open === 'gallery') { renderGallery(); $('#gallery').showModal(); }
     if (open === 'setup') openSetup();
+    if (open === 'help') showHelp();
     if (open === 'invite') {
       $('#invite-body').innerHTML = `<h2>Стол ${esc(ui.online.code)}</h2>
         <p>Отправьте друзьям ссылку на эту страницу и код стола. Они откроют её, нажмут «Новая партия» → «Присоединиться» и введут код.</p>
@@ -1102,12 +1417,9 @@ function bindShell() {
       $('#invite').showModal();
     }
     const cap = ev.target.closest('[data-cap]')?.dataset.cap;
-    if (cap) {
-      const c = capOf(cap);
-      $('#zoom').innerHTML = `<img src="${src(capImage(c))}" alt="${esc(c.name)}">`;
-      $('#zoom').onclick = () => $('#zoom').close();
-      $('#zoom').showModal();
-    }
+    if (cap && !ev.target.closest('#zoom')) zoomHero(capOf(cap));
+    const mgr = ev.target.closest('[data-mgr]')?.dataset.mgr;
+    if (mgr && !ev.target.closest('#zoom')) zoomToken(mgr);
   });
   $('#join-form').onsubmit = async ev => {
     ev.preventDefault();
@@ -1122,6 +1434,7 @@ function bindShell() {
 }
 
 function boot() {
+  $('#deal').addEventListener('close', maybeHelp);
   bindShell();
   const saved = loadLocal();
   if (saved) { ui.record = { state: saved.state }; ui.seat = saved.seat ?? null; render(); }

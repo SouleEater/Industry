@@ -16,3 +16,6 @@ research/scans/incoming/*
 # В репозитории не нужно: исходные JPEG уже под контролем версий.
 apps/table/card-images.js
 apps/table/card-images.manifest.json
+
+# Картинки из PDF издателя (scripts/extract-official-pdfs.py): права принадлежат издателю, не публиковать.
+apps/web/assets/official/

@@ -20,18 +20,16 @@ function withAbility(ability, options = {}) {
 }
 
 /* ---------- состав ---------- */
-test('в дополнении четыре новых промышленника, три из них реализованы', () => {
+test('в дополнении четыре новых промышленника, все реализованы', () => {
   assert.equal(interbellumCapitalists.length, 4, 'пятая карта — обновлённый Артур, он заменяет базовую');
-  assert.equal(playableInterbellumCapitalists.length, 3);
-  const pending = interbellumCapitalists.filter(c => c.needs);
-  assert.deepEqual(pending.map(c => c.ability), ['use-neighbour-card']);
-  assert.ok(pending[0].notes.join(' ').length > 10, 'отложенный промышленник должен объяснять, почему');
+  assert.equal(playableInterbellumCapitalists.length, 4);
+  assert.deepEqual(interbellumCapitalists.filter(c => c.needs), []);
 });
 
 test('все реализованные способности известны движку', () => {
   for (const c of playableInterbellumCapitalists)
     assert.ok(ABILITIES.includes(c.ability), c.ability);
-  assert.equal(ABILITIES.length, 8);
+  assert.equal(ABILITIES.length, 9);
 });
 
 test('с дополнением в раздачу входят промышленники дополнения', () => {

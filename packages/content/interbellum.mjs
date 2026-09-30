@@ -1,8 +1,7 @@
 // Университеты и жетоны управляющих из дополнения «Интербеллум».
 //
-// Числовые значения сняты со сканов пользователя. Иллюстрации в проект не входят:
-// правила и компоненты издателя защищены авторским правом, поэтому в цифровом столе
-// используются только игровые значения и собственные формулировки.
+// Значения и картинки сняты с PDF издателя (scripts/extract-official-pdfs.py).
+// Сами PDF и извлечённые картинки принадлежат издателю: публиковать их нельзя.
 //
 // Университет — это карта с ДВУМЯ вариантами компенсации. Игрок, чей диск проиграл,
 // делит свои единицы компенсации между вариантами как хочет (правила дополнения, стр. 7).
@@ -19,22 +18,22 @@ export const universityCards = [
   {
     id: 'uni-metal',
     sides: [
-      { id: 'uni-metal-a', options: [uniGain({ metal: 1 }), uniTrade({ oil: 1 }, { money: 4 })] },
-      { id: 'uni-metal-b', options: [uniGain({ metal: 1 }), uniTrade({ coal: 2 }, { money: 2 })] },
+      { id: 'uni-metal-a', image: 'uni-1', options: [uniGain({ metal: 1 }), uniTrade({ oil: 1 }, { money: 4 })] },
+      { id: 'uni-metal-b', image: 'uni-2', options: [uniGain({ metal: 1 }), uniTrade({ coal: 2 }, { money: 2 })] },
     ],
   },
   {
     id: 'uni-coal',
     sides: [
-      { id: 'uni-coal-a', options: [uniGain({ coal: 2 }), uniTrade({ metal: 1 }, { money: 2 })] },
-      { id: 'uni-coal-b', options: [uniGain({ coal: 2 }), uniTrade({ metal: 1 }, { oil: 1 })] },
+      { id: 'uni-coal-a', image: 'uni-3', options: [uniGain({ coal: 2 }), uniTrade({ metal: 1 }, { money: 2 })] },
+      { id: 'uni-coal-b', image: 'uni-4', options: [uniGain({ coal: 2 }), uniTrade({ metal: 1 }, { oil: 1 })] },
     ],
   },
   {
     id: 'uni-money',
     sides: [
-      { id: 'uni-money-a', options: [uniGain({ money: 1 }), uniTrade({ metal: 1 }, { upgrade: 1 })] },
-      { id: 'uni-money-b', options: [uniGain({ money: 1 }), uniTrade({ coal: 2 }, { upgrade: 1 })] },
+      { id: 'uni-money-a', image: 'uni-5', options: [uniGain({ money: 1 }), uniTrade({ metal: 1 }, { upgrade: 1 })] },
+      { id: 'uni-money-b', image: 'uni-6', options: [uniGain({ money: 1 }), uniTrade({ coal: 2 }, { upgrade: 1 })] },
     ],
   },
 ];
@@ -92,12 +91,25 @@ export const managerTokens = [
     { kind: 'local-gain', gain: { coal: 4 } }),
 ];
 
+// Порядок страниц в «жетоны управляющих.pdf». Повторы поставки и «вывести за 4» — по два жетона.
+const MANAGER_IMAGES = {
+  'upgrade-for-metal': ['mgr-01'], 'repeat-supply': ['mgr-02', 'mgr-13'], 'money-if-all-sales': ['mgr-03'],
+  'money-per-exchange': ['mgr-04'], 'discard-for-money': ['mgr-05', 'mgr-06'], 'oil-if-all-sales': ['mgr-07'],
+  'free-exchange-once': ['mgr-08'], 'local-coal-metal-or-oil': ['mgr-09'], 'local-four-coal': ['mgr-10'],
+  'repeat-each-exchange': ['mgr-11'], 'money-per-sale': ['mgr-12'], 'coal-per-sale': ['mgr-14'],
+};
+const seenFamily = {};
+for (const token of managerTokens) {
+  const n = seenFamily[token.family] = (seenFamily[token.family] ?? -1) + 1;
+  token.image = MANAGER_IMAGES[token.family]?.[n] ?? null;
+}
+
 /** Личный управляющий промышленника: в стопку аукциона не попадает. */
 export const personalManager = {
   id: 'personal-manager', family: 'personal-manager', personal: true,
   text: 'Получите либо 1 уголь и 1 металл, либо 1 жетон модернизации. Тратятся только эффектами этого предприятия.',
   effect: { kind: 'local-choice', options: [{ coal: 1, metal: 1 }, { upgrade: 1 }] },
-  needs: null, playable: true,
+  needs: null, playable: true, image: 'mgr-15',
 };
 
 /**
@@ -118,27 +130,65 @@ export const deferredManagers = [];
  */
 export const interbellumCapitalists = [
   {
-    id: 'ib-cap-compensation', name: 'Компенсатор', ability: 'compensation-before-normal',
+    id: 'ib-cap-compensation', images: ['/apps/web/assets/official/char-02.jpg'], name: 'Компенсатор', ability: 'compensation-before-normal',
     text: 'Используя каждое своё немодернизированное предприятие в фазе производства, можете один раз разыграть его эффект компенсации — перед обычными строками.',
     notes: [],
   },
   {
-    id: 'ib-cap-variable', name: 'Капиталист', ability: 'variable-plus-two',
+    id: 'ib-cap-variable', images: ['/apps/web/assets/official/char-04.jpg'], name: 'Капиталист', ability: 'variable-plus-two',
     text: 'Значение вашего диска переменного капитала на 2 больше, чем потрачено угля.',
     notes: ['Правила дополнения, «Отдельные модули»: без дисков переменного капитала этот промышленник не используется.'],
   },
   {
-    id: 'ib-cap-personal', name: 'Распорядитель', ability: 'personal-manager',
+    id: 'ib-cap-personal', images: ['/apps/web/assets/official/char-07.jpg'], name: 'Распорядитель', ability: 'personal-manager',
     text: 'У вас есть личный управляющий. На одном предприятии можно размещать несколько управляющих.',
     notes: ['Правила дополнения, «Отдельные модули»: без жетонов управляющих этот промышленник не используется.'],
   },
   {
-    id: 'ib-cap-neighbour', name: 'Сосед', ability: 'use-neighbour-card',
+    id: 'ib-cap-neighbour', images: ['/apps/web/assets/official/char-08.jpg'], name: 'Сосед', ability: 'use-neighbour-card',
     text: 'В конце каждой фазы производства можете один раз потратить 1 металл, чтобы использовать не стартовое предприятие соседа справа.',
-    notes: ['Пока не реализовано: требует использования чужой карты в свой ход.'],
-    needs: 'borrow',
+    notes: ['Постоянные эффекты чужой карты не действуют, жетоны управляющих на ней работают (правила дополнения, стр. 11).'],
   },
 ];
 
 /** Промышленники дополнения, которых движок уже умеет. */
 export const playableInterbellumCapitalists = interbellumCapitalists.filter(c => !c.needs);
+
+/**
+ * Четыре односторонних стартовых предприятия дополнения («Стартовые предприятия.pdf»,
+ * стр. 3, 6, 7 и 9). Порядок строк — сверху вниз, как напечатано. Стартовые ресурсы
+ * взяты с верхней полосы карты.
+ *
+ * Модернизация здесь параметризована: `cost` — что платится за одну карту, `limit` —
+ * сколько раз (без `limit` — сколько угодно, как на базовых стартовых картах).
+ */
+const stTake = values => ({ kind: 'gain', gain: values });
+const stTrade = (cost, output, limit) => ({ kind: 'convert', cost, gain: output, limit });
+const stUpgrade = (cost, limit) => ({ kind: 'upgrade', cost, ...(limit ? { limit } : {}) });
+export const interbellumStarts = [
+  {
+    id: 'ib-start-1', name: 'Стартовое предприятие 6', image: 'st-off-3', starting: { metal: 2 },
+    effects: [stTrade({ coal: 1 }, { money: 1 }, 3), stUpgrade({ coal: 1 }, 1), stUpgrade({ upgrade: 1 }, 1)],
+  },
+  {
+    id: 'ib-start-2', name: 'Стартовое предприятие 7', image: 'st-off-6', starting: { coal: 1, metal: 1 },
+    effects: [
+      { kind: 'permanent', rule: 'upgrade-on-gain', text: 'Всякий раз, когда получаете жетон модернизации, можете потратить жетон и уголь, чтобы модернизировать любое число карт.' },
+      stTake({ upgrade: 1 }),
+      stTrade({ coal: 1, metal: 1 }, { money: 4 }, 1),
+    ],
+  },
+  {
+    id: 'ib-start-3', name: 'Стартовое предприятие 8', image: 'st-off-7', starting: { coal: 2 },
+    effects: [
+      { kind: 'permanent', rule: 'store-on-big-compensation', resource: 'oil', text: 'Всякий раз, когда получаете компенсацию за диск 3 или 4, кладите 1 нефть на эту карту.' },
+      { kind: 'take-stored', resource: 'oil', text: 'Возьмите всю нефть с этой карты.' },
+      stTake({ upgrade: 1 }),
+      stUpgrade({ coal: 1, upgrade: 1 }),
+    ],
+  },
+  {
+    id: 'ib-start-4', name: 'Стартовое предприятие 9', image: 'st-off-9', starting: { oil: 1 },
+    effects: [stTake({ upgrade: 1 }), stTrade({ metal: 1 }, { coal: 2, money: 1 }, 2), stUpgrade({ coal: 1, upgrade: 1 })],
+  },
+];

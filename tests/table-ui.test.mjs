@@ -90,6 +90,10 @@ test('шаг модернизации предлагает названное д
       (function () {
         const p = S().players.find(x => x.id === currentActor(S()));
         const start = p.cards.find(c => DEFS[c.definitionId].kind === 'startup');
+        // Раздача случайна: гарантируем, что есть чем платить и что улучшать.
+        p.wallet.coal = 5; p.wallet.upgrade = 5;
+        if (!p.cards.some(c => !c.upgraded && DEFS[c.definitionId].kind === 'company'))
+          p.cards.push({ id: 'target', definitionId: PACK.deck.find(x => DEFS[x].advanced.length > 0), upgraded: false, usedRound: 0, managers: [], local: null });
         act({ type: 'UseCard', cardId: start.id }, true);
         let steps = 0;
         while (S().production.active && steps++ < 12) {
@@ -191,8 +195,10 @@ test('университет показывает оба варианта ком
     const faces = [...w.document.querySelectorAll('#stage-strip .card.university .uni-face')];
     assert.equal(faces.length, 2, 'университеты должны быть видны в ленте лотов');
     assert.match(faces[0].textContent, /Университет/);
-    assert.equal(faces[0].querySelectorAll('.uni-opt').length, 2, 'на карте два варианта');
-    assert.match(faces[0].textContent, /Жетон управляющего/);
+    assert.ok(faces[0].querySelector('img'), 'на карте университета — официальная картинка с двумя вариантами');
+    const strips = [...w.document.querySelectorAll('#stage-strip .card.university .uni-token')];
+    assert.equal(strips.length, 2, 'под каждым университетом лежит жетон управляющего');
+    assert.match(strips[0].textContent, /Жетон управляющего/);
 
     // расчёт ставки на университет говорит про делимую компенсацию
     const uniLot = w.eval('S().lots.filter(l => l.kind === "university")[0].id');
@@ -342,6 +348,37 @@ test('панель управляющего называет действие и
       'нажатие не улучшило предприятие');
     w.eval('render()');
     assert.equal(w.document.querySelector('#effect-slot .manager-step'), null, 'панель должна исчезнуть после применения');
+    assert.deepEqual(errors, []);
+  } finally { close(); }
+});
+
+test('в цепочке две старые карты нельзя поменять местами, стрелки заблокированы', ready, async () => {
+  const { w, errors, close } = await open();
+  try {
+    start(w, { count: 3, chain: true });
+    const staged = w.eval(`(function () {
+      const s = S(), p = s.players[0];
+      const ids = PACK.deck.slice(0, 2);
+      p.cards = [
+        { id: 'old1', definitionId: PACK.startupIds[0], upgraded: false, usedRound: 0, managers: [], local: null },
+        { id: 'old2', definitionId: ids[0], upgraded: false, usedRound: 0, managers: [], local: null },
+        { id: 'new1', definitionId: ids[1], upgraded: false, usedRound: 0, managers: [], local: null },
+      ];
+      p.lockedOrder = ['old1', 'old2']; p.planned = false;
+      s.phase = 'planning'; s.turn = 0; ui.seat = null; render();
+      return 'ok';
+    })();`);
+    assert.equal(staged, 'ok');
+    const rows = [...w.document.querySelectorAll('#line-strip .card')].map(card => ({
+      left: card.querySelector('.move-row:last-child button:first-child'),
+      right: card.querySelector('.move-row:last-child button:last-child'),
+    }));
+    assert.equal(rows.length, 3);
+    assert.equal(rows[0].right.disabled, true, 'старую карту нельзя сдвинуть через другую старую');
+    assert.equal(rows[1].left.disabled, true);
+    assert.equal(rows[1].right.disabled, false, 'старую карту можно сдвинуть через новую');
+    assert.equal(rows[2].left.disabled, false, 'новую карту можно двигать');
+    assert.match(w.document.querySelector('#line-strip').textContent, /старая/);
     assert.deepEqual(errors, []);
   } finally { close(); }
 });

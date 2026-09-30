@@ -18,6 +18,7 @@ export const ABILITIES = [
   'compensation-before-normal',   // раз на каждое немодернизированное предприятие — его компенсация
   'variable-plus-two',            // диск переменного капитала на 2 больше потраченного угля
   'personal-manager',             // личный жетон и несколько управляющих на одной карте
+  'use-neighbour-card',           // 1 металл в конце производства: использовать не стартовую карту соседа справа
 ];
 
 /** Прибавка к значению диска переменного капитала. */
@@ -31,11 +32,19 @@ export const has = (player, name) => Boolean(player) && player.ability === name;
 export const compensationUnits = (player, value) =>
   value + (has(player, 'compensation-plus-one') ? 1 : 0);
 
-/** Чем платится модернизация. Металл — только при нулевом запасе жетонов. */
-export const upgradeCost = player =>
-  player.wallet.upgrade === 0 && has(player, 'metal-for-upgrade')
-    ? { coal: 1, metal: 1 }
-    : { coal: 1, upgrade: 1 };
+/**
+ * Чем платится модернизация. По умолчанию — уголь и жетон модернизации; стартовые
+ * карты дополнения задают свою цену. Металл вместо жетона — только когда жетоны
+ * кончились (Тимур).
+ */
+export function upgradeCost(player, base = { coal: 1, upgrade: 1 }) {
+  const tokens = base.upgrade ?? 0;
+  if (tokens > 0 && player.wallet.upgrade === 0 && has(player, 'metal-for-upgrade')) {
+    const { upgrade, ...rest } = base;
+    return { ...rest, metal: (rest.metal ?? 0) + tokens };
+  }
+  return base;
+}
 
 /** Дополнительный диск, который добавляется к обычному комплекту 1–4. */
 export const extraDisc = player =>
