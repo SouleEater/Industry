@@ -1,0 +1,11 @@
+.git
+node_modules
+data
+dist
+.env
+research
+docs
+tests
+*.log
+apps/table/card-images.js
+apps/table/card-images.manifest.json

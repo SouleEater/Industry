@@ -186,6 +186,8 @@ function plainFace(card, d) {
 
 /* Карта рисуется по данным: иллюстрация вырезана из скана, строки эффектов — наши,
    поэтому после улучшения сторона меняется по-настоящему (компенсации сверху нет). */
+/** Картинка есть в пакете: без PDF издателя часть картинок не упаковывается. */
+const hasPacked = key => typeof CARD_IMAGES !== 'undefined' && Boolean(CARD_IMAGES[key]);
 const hasArt = d => d.images.length > 0 && typeof CARD_IMAGES !== 'undefined' && Boolean(CARD_IMAGES['art-' + keyOf(d.images[0])]);
 const TEXT_KINDS = ['count-cards', 'operation-bonus', 'upgrade-next', 'text', 'permanent', 'take-stored'];
 function rowHtml(e, cls = '') {
@@ -236,7 +238,7 @@ function cardNode(card, { owner = null, lot = null, mode = 'view' } = {}) {
     face.setAttribute('aria-label', `${cardTitle(d, card.definitionId)}${card.upgraded ? ', улучшенная сторона' : ''}`);
     // Переворот показываем один раз — в кадре, где карта стала улучшенной.
     if (ui.seenUp?.[card.id] === false && card.upgraded) face.classList.add('flip-in');
-  } else if (d.images.length) {
+  } else if (d.images.length && hasPacked(faceKey(card))) {
     const img = el('img');
     img.src = src(faceKey(card));
     setRatio(face, faceKey(card));
@@ -299,7 +301,7 @@ function managerTokenHtml(m, { mini = false } = {}) {
 
 /* ---------- карточка промышленника, нарисованная ---------- */
 const portraitKey = c => 'port-' + keyOf(c.images?.[0] ?? '');
-const hasPortrait = c => Boolean(c?.images?.length && typeof CARD_IMAGES !== 'undefined' && CARD_IMAGES[portraitKey(c)]);
+const hasPortrait = c => Boolean(c?.images?.length && hasPacked(portraitKey(c)));
 function heroCardHtml(c, { compact = false, big = false } = {}) {
   const img = hasPortrait(c) ? `<img class="hc-portrait" src="${src(portraitKey(c))}" alt="Портрет: ${esc(c.name)}">` : '';
   return `<div class="hero-card ${compact ? 'compact' : ''} ${big ? 'big' : ''}" data-cap="${c.id}">${img}
@@ -417,18 +419,23 @@ function ledgerNode(lot) {
 function renderRail() {
   const s = S();
   const steps = [['auction', 'Аукцион'], ['settlement', 'Разбор'], ['planning', 'План'], ['production', 'Производство']];
-  const at = s.phase === 'finished' ? 4 : Math.max(0, steps.findIndex(([k]) => k === s.phase));
+  const at = !s ? 0 : s.phase === 'finished' ? 4 : Math.max(0, steps.findIndex(([k]) => k === s.phase));
   $('#rail').innerHTML = `
     <span class="logo">ИНДУ<b>С</b>ТРИЯ</span>
-    <span class="round-badge" aria-label="Раунд ${s.round} из 4">Раунд <b>${s.round}</b> из 4</span>
+    ${s ? `<span class="round-badge" aria-label="Раунд ${s.round} из 4">Раунд <b>${s.round}</b> из 4</span>
     <ol class="steps" aria-label="Этапы раунда">${steps.map(([k, t], i) =>
-      `<li class="${i < at ? 'done' : i === at ? 'now' : ''}"><i>${i + 1}</i><span>${t}</span></li>`).join('')}</ol>
+      `<li class="${i < at ? 'done' : i === at ? 'now' : ''}"><i>${i + 1}</i><span>${t}</span></li>`).join('')}</ol>` : ''}
     <span class="spacer"></span>
-    ${ui.online ? `<button class="chip live" data-open="invite">стол ${esc(ui.online.code)}</button>` : ''}
+    ${ui.online ? `<button class="chip live" data-open="invite" title="Информация о столе">стол ${esc(ui.online.code)}</button>` : ''}
+    ${net.server ? `<button class="chip" data-open="online" title="Играть по сети">Онлайн</button>` : ''}
+    ${net.server ? (net.user
+    ? `<button class="chip" data-open="account" title="Аккаунт">👤 ${esc(net.user.username)}</button>`
+    : `<button class="chip" data-open="login">Войти</button>`) : ''}
     <button class="chip" data-open="help" title="Как играть">? <span class="wide">Как играть</span></button>
     <button class="chip" data-open="gallery" title="Каталог карт">Карты</button>
     <button class="chip" data-open="log" title="Журнал ходов">Журнал</button>
     <button class="chip" data-open="setup" title="Начать новую партию">Новая <span class="wide">партия</span></button>`;
+  if (typeof renderSetupOnline === 'function') renderSetupOnline();
 }
 
 /* ---------- соперники ---------- */
@@ -1176,14 +1183,18 @@ function render() {
   for (const p of s.players) for (const c of p.cards) ui.seenUp[c.id] = Boolean(c.upgraded);
 
   // разбор лотов идёт сам, с паузой — чтобы было видно, что происходит
-  if (s.phase === 'settlement' && !s.settlement.pending && myTurn()) {
-    ui.settleTimer = setTimeout(() => act({ type: 'ResolveLot' }, true), 900);
+  if (s.phase === 'settlement' && !s.settlement.pending && (ui.online?.playing || myTurn())) {
+    // Онлайн разбор может запустить любой игрок (сервер принимает его от всех), поэтому
+    // ждём по-разному: если первый клиент отключился, партия не встанет.
+    const delay = 900 + (ui.online?.playing && !myTurn() ? 700 + 500 * (ui.seat ?? 0) : 0);
+    ui.settleTimer = setTimeout(() => act({ type: 'ResolveLot' }, true), delay);
   }
   if (s.phase === 'finished' && !ui.shownResult) { ui.shownResult = true; showResult(); }
 }
 
 /* ---------- команды ---------- */
 function act(command, quiet = false) {
+  if (ui.online?.playing) return actOnline(command, quiet);
   const s = S();
   try {
     const next = dispatch(s, { ...command, actorId: me().id, expectedRevision: s.revision }, DEFS);
@@ -1201,8 +1212,8 @@ function act(command, quiet = false) {
 /* ---------- сохранение ---------- */
 const KEY = 'industry.table.v1';
 function save() {
+  if (ui.online?.playing) return;   // онлайн-партия хранится на сервере, локальное сохранение не трогаем
   try { localStorage.setItem(KEY, JSON.stringify({ state: ui.record.state, seat: ui.seat })); } catch { /* приватный режим */ }
-  pushOnline();
 }
 function loadLocal() {
   try {
@@ -1249,7 +1260,7 @@ function renderGallery(filter = 'company') {
     <div class="tabs">${tabs.map(([k, t]) => `<button data-tab="${k}" class="${k === filter ? 'on' : ''}">${t}</button>`).join('')}</div>
     <div class="gallery ${filter === 'capitalist' || filter === 'manager' ? 'wide' : ''}"></div>`;
   const grid = body.querySelector('.gallery');
-  for (const item of groups[filter]()) {
+  for (const item of groups[filter]().filter(i => hasPacked(i.key))) {
     const box = el('div', 'g-item');
     const img = el('img');
     img.src = src(item.key); img.alt = item.name; img.loading = 'lazy';
@@ -1338,6 +1349,7 @@ function openSetup() {
         productionChain: field('chain').checked,
         capitalists: field('capitalists').checked,
       }, PACK);
+      if (ui.online) leaveOnline(false);
       ui.record = { state }; ui.seat = null; ui.disc = null; ui.focus = null; ui.shownResult = false;
       ui.prevWallets = {};
       save(); render();
@@ -1357,50 +1369,6 @@ function openSetup() {
   $('#setup').showModal();
 }
 
-/* ---------- онлайн ---------- */
-async function joinOnline(code, fresh) {
-  if (typeof claude === 'undefined' || !claude?.use) {
-    toast('Онлайн-стол работает только на опубликованной странице.'); return false;
-  }
-  const db = await claude.use('db');
-  if (!db) { toast('Онлайн-стол здесь недоступен — играем на одном устройстве.'); return false; }
-  const user = await claude.use('user');
-  const myId = user ? await user.id() : 'anon';
-  const doc = db.doc(`games/${code}`);
-
-  if (fresh) {
-    await doc.set({ state: trim(ui.record.state), seats: { p0: myId }, updated: Date.now() });
-    ui.seat = 0;
-  } else {
-    const snap = await doc.get();
-    if (!snap?.state) { toast(`Стол ${code} не найден.`); return false; }
-    ui.record = { state: snap.state };
-    const seats = { ...(snap.seats ?? {}) };
-    let mine = Object.entries(seats).find(([, v]) => v === myId)?.[0];
-    if (!mine) {
-      mine = ui.record.state.players.map(p => p.id).find(id => !seats[id]);
-      if (!mine) { toast('Все места за этим столом заняты.'); return false; }
-      seats[mine] = myId;
-      await doc.update({ seats });
-    }
-    ui.seat = Number(mine.slice(1));
-  }
-  ui.online = { code, doc };
-  doc.onSnapshot(snap => {
-    if (!snap?.state || snap.state.revision <= (S()?.revision ?? -1)) return;
-    ui.record.state = snap.state;
-    render();
-  });
-  render();
-  return true;
-}
-const trim = state => ({ ...state, events: state.events.slice(-150) });
-function pushOnline() {
-  if (!ui.online) return;
-  ui.online.doc.update({ state: trim(ui.record.state), updated: Date.now() })
-    .catch(() => toast('Не удалось отправить ход: нужен доступ на редактирование этого артефакта.'));
-}
-
 /* ---------- запуск ---------- */
 function bindShell() {
   document.addEventListener('click', ev => {
@@ -1410,27 +1378,12 @@ function bindShell() {
     if (open === 'gallery') { renderGallery(); $('#gallery').showModal(); }
     if (open === 'setup') openSetup();
     if (open === 'help') showHelp();
-    if (open === 'invite') {
-      $('#invite-body').innerHTML = `<h2>Стол ${esc(ui.online.code)}</h2>
-        <p>Отправьте друзьям ссылку на эту страницу и код стола. Они откроют её, нажмут «Новая партия» → «Присоединиться» и введут код.</p>
-        <div class="warn-box">Чтобы друзья могли делать ходы, артефакт нужно расшарить им с правом редактирования. Иначе они увидят стол, но не смогут ходить.</div>`;
-      $('#invite').showModal();
-    }
+    if (ev.target.closest('[data-close-drawer]')) $('#drawer').classList.remove('open');
     const cap = ev.target.closest('[data-cap]')?.dataset.cap;
     if (cap && !ev.target.closest('#zoom')) zoomHero(capOf(cap));
     const mgr = ev.target.closest('[data-mgr]')?.dataset.mgr;
     if (mgr && !ev.target.closest('#zoom')) zoomToken(mgr);
   });
-  $('#join-form').onsubmit = async ev => {
-    ev.preventDefault();
-    const code = $('#join-code').value.trim().toUpperCase();
-    if (code && await joinOnline(code, false)) { $('#setup').close(); }
-  };
-  $('#host-btn').onclick = async () => {
-    if (!S()) { toast('Сначала начните партию, потом откройте её для друзей.'); return; }
-    const code = Math.random().toString(36).slice(2, 7).toUpperCase();
-    if (await joinOnline(code, true)) { $('#setup').close(); toast(`Стол ${code} открыт.`); }
-  };
 }
 
 function boot() {
@@ -1439,5 +1392,5 @@ function boot() {
   const saved = loadLocal();
   if (saved) { ui.record = { state: saved.state }; ui.seat = saved.seat ?? null; render(); }
   else openSetup();
+  if (typeof initOnline === 'function') initOnline();
 }
-boot();

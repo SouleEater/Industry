@@ -1,0 +1,45 @@
+# Сервер «Индустрии» + автоматический HTTPS (Caddy получает сертификат сам).
+# Перед запуском: cp .env.example .env и заполните DOMAIN, SESSION_SECRET и режим регистрации.
+#   docker compose up -d --build
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      PUBLIC_ORIGIN: https://${DOMAIN:?укажите DOMAIN в .env}
+      TRUST_PROXY: "1"                       # перед приложением стоит Caddy
+      SESSION_SECRET: ${SESSION_SECRET:?укажите SESSION_SECRET в .env (не короче 32 символов)}
+      REGISTRATION: ${REGISTRATION:-invite}
+      INVITE_CODE: ${INVITE_CODE:-}
+      MAX_USERS: ${MAX_USERS:-500}
+    volumes:
+      - industry-data:/data                  # база SQLite: пользователи, сессии, партии
+    expose:
+      - "8080"                               # наружу порт не публикуется: доступ только через Caddy
+    read_only: true                          # файловая система контейнера только для чтения
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+
+volumes:
+  industry-data:
+  caddy-data:
+  caddy-config:

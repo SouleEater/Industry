@@ -637,3 +637,26 @@ dialog#deal { width: min(760px, 94vw); }
 .uni-token .mt-text { font-size: 12.5px; }
 .uni-token .mt-kind { font-size: 10px; letter-spacing: .06em; }
 .uni .uo-head { text-align: center; font-family: Oswald, sans-serif; font-size: 5.6cqw; letter-spacing: .1em; text-transform: uppercase; color: #7a4d10; }
+
+/* ---------- вход и онлайн ---------- */
+[hidden] { display: none !important; }
+.form-error { color: #ff8a6a; font-size: 14px; min-height: 1.2em; margin: 4px 0 0; }
+.muted { color: var(--frost); font-size: 14px; }
+h3.sub { font-size: 14px; letter-spacing: .1em; text-transform: uppercase; color: var(--brass); margin: 18px 0 6px; }
+.code-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.t-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.t-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; background: var(--slate); border: 1px solid var(--rivet); flex-wrap: wrap; }
+.t-code { font-family: Oswald, sans-serif; letter-spacing: .18em; color: var(--brass); font-size: 18px; }
+.t-code.big { font-size: 28px; }
+.t-info { flex: 1; color: var(--frost); font-size: 13.5px; min-width: 160px; }
+.t-empty { color: var(--frost); font-size: 14px; padding: 4px 2px; }
+.link-row { display: flex; gap: 8px; margin: 10px 0; }
+.link-row input { flex: 1; min-width: 0; padding: 9px 11px; border-radius: 9px; border: 1px solid var(--rivet); background: #0f1720; color: var(--chalk); font: inherit; font-size: 14px; }
+.seats { list-style: none; padding: 0; margin: 12px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seats li { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; border: 1px dashed var(--rivet); min-height: 46px; }
+.seats li.taken { border-style: solid; background: var(--slate); }
+.seat-n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--rivet); font-size: 13px; font-family: Oswald, sans-serif; }
+.chip.live { border-color: var(--ok); color: var(--ok); }
+@media (max-width: 520px) { .seats { grid-template-columns: 1fr; } }
+
+.online-strip { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 16px; padding: 12px 14px; border-radius: 12px; background: rgba(226, 176, 74, .08); border: 1px solid rgba(226, 176, 74, .35); font-size: 14px; }

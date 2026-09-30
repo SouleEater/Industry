@@ -34,7 +34,7 @@
 <aside class="drawer" id="drawer">
   <div class="drawer-head">
     <h2>ЖУРНАЛ</h2>
-    <button class="chip" onclick="document.getElementById('drawer').classList.remove('open')">Закрыть</button>
+    <button class="chip" data-close-drawer>Закрыть</button>
   </div>
   <ul class="log" id="log"></ul>
 </aside>
@@ -73,18 +73,26 @@
       <button type="submit" class="act">Начать игру</button>
     </div>
   </form>
-  <details class="more friends">
-    <summary>Играть с друзьями онлайн</summary>
-    <p>Откройте начатую партию как общий стол или присоединитесь к чужому по коду.</p>
-    <div class="sheet-actions" style="justify-content:flex-start">
-      <button class="act ghost" id="host-btn">Открыть стол</button>
-    </div>
-    <form id="join-form" class="sheet-actions" style="justify-content:flex-start;margin-top:10px">
-      <input id="join-code" class="code-input" placeholder="код стола" maxlength="6">
-      <button class="act ghost" type="submit">Присоединиться</button>
-    </form>
-  </details>
+  <div class="online-strip" id="setup-online" hidden></div>
 </div></dialog>
+
+<dialog id="auth"><div class="sheet">
+  <h2 id="auth-title">Вход</h2>
+  <div class="tabs"><button type="button" data-auth-tab="login" class="on">Вход</button><button type="button" data-auth-tab="register">Регистрация</button></div>
+  <form id="auth-form">
+    <label class="field"><span>Логин</span><input name="username" autocomplete="username" required minlength="3" maxlength="24"></label>
+    <label class="field"><span>Пароль</span><input name="password" type="password" autocomplete="current-password" required minlength="8" maxlength="128"></label>
+    <label class="field" id="auth-invite" hidden><span>Код приглашения</span><input name="invite" autocomplete="off"></label>
+    <p class="muted" id="auth-hint" hidden>Логин: 3–24 символа (буквы, цифры, «_», «.», «-»). Пароль: от 8 символов, не самый простой.</p>
+    <p class="warn-box" id="auth-closed" hidden>Регистрация на этом сервере закрыта.</p>
+    <p class="form-error" id="auth-error" role="alert"></p>
+    <div class="sheet-actions"><button type="button" class="act ghost" data-close>Отмена</button><button class="act" type="submit" id="auth-submit">Войти</button></div>
+  </form>
+</div></dialog>
+
+<dialog id="online"><div class="sheet wide-sheet" id="online-body"></div></dialog>
+<dialog id="lobby"><div class="sheet" id="lobby-body"></div></dialog>
+<dialog id="account"><div class="sheet" id="account-body"></div></dialog>
 
 <dialog id="deal"><div class="sheet wide-sheet" id="deal-body"></div></dialog>
 

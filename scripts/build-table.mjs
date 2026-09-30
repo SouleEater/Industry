@@ -87,7 +87,7 @@ const html = read('apps/table/shell.html')
   .replace('/*DATA*/', () => fs.readFileSync(images, 'utf8'))
   .replace('/*ENGINE*/', () => chunks.map(c => c.code).join('\n'))
   .replace('/*UIA*/', () => read('apps/table/ui.js'))
-  .replace('/*UIB*/', () => '');
+  .replace('/*UIB*/', () => read('apps/table/online.js'));
 
 const out = path.join(root, 'dist', 'table.html');
 fs.mkdirSync(path.dirname(out), { recursive: true });

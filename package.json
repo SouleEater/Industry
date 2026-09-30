@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.13"
   },
   "scripts": {
     "dev": "node scripts/serve.mjs",
@@ -12,6 +12,7 @@
     "build": "node scripts/build.mjs",
     "table": "node scripts/build-table.mjs",
     "table:images": "python scripts/pack-table-images.py",
-    "table:serve": "node scripts/serve-table.mjs"
+    "table:serve": "node scripts/serve-table.mjs",
+    "start": "node server/index.mjs"
   }
 }

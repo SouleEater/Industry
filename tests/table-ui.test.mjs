@@ -195,7 +195,9 @@ test('университет показывает оба варианта ком
     const faces = [...w.document.querySelectorAll('#stage-strip .card.university .uni-face')];
     assert.equal(faces.length, 2, 'университеты должны быть видны в ленте лотов');
     assert.match(faces[0].textContent, /Университет/);
-    assert.ok(faces[0].querySelector('img'), 'на карте университета — официальная картинка с двумя вариантами');
+    assert.match(faces[0].textContent, /Компенсация на выбор/);
+    assert.equal(faces[0].querySelectorAll('.uni-opt').length, 2, 'на карте два варианта, разделённых словом «либо»');
+    assert.match(faces[0].textContent, /либо/i);
     const strips = [...w.document.querySelectorAll('#stage-strip .card.university .uni-token')];
     assert.equal(strips.length, 2, 'под каждым университетом лежит жетон управляющего');
     assert.match(strips[0].textContent, /Жетон управляющего/);
