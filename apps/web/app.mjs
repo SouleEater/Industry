@@ -83,7 +83,7 @@ function eventText(e) {
     case 'BidPlaced': return `${name}: ставка ${e.value}${e.discKind === 'variable' ? ' за уголь' : ''}, лот ${Number(e.lotId.split('l')[1]) + 1}`;
     case 'AuctionClosed': return 'Все ставки сделаны';
     case 'Compensation': return `${name}: компенсация ×${e.times}`;
-    case 'CompensationChosen': return `${name}: ${e.times} операций компенсации`;
+    case 'CompensationChosen': { const k = e.times ?? (e.picks ?? []).reduce((a, b) => a + b, 0); return k ? `${name}: ${k} операций компенсации` : `${name}: без компенсации`; }
     case 'CardWon': return `${name}: получает «${defs[e.definitionId].name}»`;
     case 'CardDiscarded': return 'Предприятие без ставок сброшено';
     case 'ProductionStarted': return 'Началось производство';

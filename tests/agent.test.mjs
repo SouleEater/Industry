@@ -107,7 +107,8 @@ test('агент не получает компенсаций, а выигран
     assert.equal(e.times, 0);
   const taken = s.events.filter(e => e.type === 'AgentTookCard').map(e => e.cardId);
   for (const id of taken)
-    assert.ok(s.discard.some(c => c.id === id), 'карта агента должна уйти из игры');
+    assert.ok((s.boxed ?? []).some(c => c.id === id) && !s.discard.some(c => c.id === id) && !s.deck.some(c => c.id === id),
+      'карта агента должна уйти из игры (в коробку), а не в сброс, который может вернуться в колоду');
 });
 
 test('агент не планирует, не производит и не попадает в итог', () => {

@@ -148,13 +148,17 @@ export function createGames({ store, config }) {
       const state = tx(() => {
         const fresh = q.table.get(row.code);
         if (fresh.status !== 'lobby') throw new GameError(409, 'Партия уже началась.');
-        const seats = seatsOf(row.code);
+        let seats = seatsOf(row.code);
         if (seats.length < 2) throw new GameError(409, 'Для игры нужно хотя бы два человека.');
+        // Места после выхода из комнаты могут идти с пропуском (0, 2, 3): номер места должен
+        // совпадать с номером игрока в партии, поэтому перед стартом места сдвигаются подряд.
+        seats.forEach((st, i) => { if (st.seat !== i) q.moveSeat.run(i, row.code, st.userId); });
+        seats = seatsOf(row.code);
         const o = JSON.parse(fresh.options);
         const game = createGame({
           names: seats.map(s => s.username),
           seed: crypto.randomInt(0, 2 ** 32),
-          planning: true,
+          planning: true, randomFirst: true,
           expansion: o.expansion, universities: o.universities, productionChain: o.chain,
           variableCapital: o.variable, capitalists: o.capitalists,
         }, basePack);

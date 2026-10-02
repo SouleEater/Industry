@@ -74,6 +74,7 @@ export function openStore(dataDir) {
     addSeat: db.prepare('INSERT INTO seats (code, seat, user_id) VALUES (?, ?, ?)'),
     delSeat: db.prepare('DELETE FROM seats WHERE code = ? AND user_id = ?'),
     mySeat: db.prepare('SELECT seat FROM seats WHERE code = ? AND user_id = ?'),
+    moveSeat: db.prepare('UPDATE seats SET seat = ? WHERE code = ? AND user_id = ?'),
 
     myTables: db.prepare(`SELECT t.code, t.status, t.updated_at, t.host_id, h.username AS host,
         (SELECT COUNT(*) FROM seats WHERE code = t.code) AS players

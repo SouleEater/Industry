@@ -38,7 +38,7 @@ const csp = [
   "script-src 'unsafe-inline'",
   "style-src 'unsafe-inline' https://fonts.googleapis.com",
   'font-src https://fonts.gstatic.com',
-  "img-src 'self' data:",
+  "img-src 'self' data: blob:",
   "connect-src 'none'",
   "form-action 'none'",
   "base-uri 'none'",

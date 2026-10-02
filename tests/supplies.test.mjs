@@ -151,13 +151,15 @@ test('производство нельзя завершить, пока пос�
   let guard = 0;
   while (activeEffect(s, defs)?.kind !== 'upgrade' && guard++ < 10) s = act(s, 'NextEffect');
   s = act(s, 'Upgrade', { cardId: 'x' });
+  // Поставку разыгрывают сразу после модернизации (правила дополнения, стр. 5): пока она ждёт, всё остальное закрыто.
+  assert.throws(() => act(s, 'NextEffect'), e => e.code === 'SUPPLY_PENDING');
+  assert.throws(() => act(s, 'FinishProduction'), e => e.code === 'SUPPLY_PENDING');
+  s = act(s, 'TakeSupply', { times: 0 });
   guard = 0;
   while (s.production.active && guard++ < 10) s = act(s, 'NextEffect');
   s = act(s, 'UseCard', { cardId: 'x' });
   guard = 0;
   while (s.production.active && guard++ < 10) s = act(s, 'NextEffect');
-  assert.throws(() => act(s, 'FinishProduction'), e => e.code === 'SUPPLY_PENDING');
-  s = act(s, 'TakeSupply', { times: 0 });
   s = act(s, 'FinishProduction');
   assert.equal(s.players[0].done, true);
 });

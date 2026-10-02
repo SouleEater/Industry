@@ -45,7 +45,23 @@ const me = () => {
 const myTurn = () => { const s = S(); return s && currentActor(s) === me()?.id; };
 const capOf = id => [...PACK.capitalists, ...(PACK.expansionCapitalists ?? [])].find(c => c.id === id);
 const capImage = c => keyOf(c.images[0]);
-const src = key => `data:image/webp;base64,${CARD_IMAGES[key]}`;
+/* Картинки лежат в пакете строками base64. Раньше каждая перерисовка вставляла в DOM строку
+   на 50–100 КБ и браузер заново разбирал её. Теперь строка превращается в Blob один раз,
+   а дальше везде используется короткий blob:-адрес — он же кэширует декодированную картинку. */
+const BLOBS = new Map();
+const src = key => {
+  if (BLOBS.has(key)) return BLOBS.get(key);
+  const b64 = typeof CARD_IMAGES !== 'undefined' ? CARD_IMAGES[key] : null;
+  if (!b64) return '';
+  let url;
+  try {
+    const bin = atob(b64), bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    url = URL.createObjectURL(new Blob([bytes], { type: 'image/webp' }));
+  } catch { url = `data:image/webp;base64,${b64}`; }
+  BLOBS.set(key, url);
+  return url;
+};
 /** Пропорции берутся из самой картинки: у карт издателя и у макетов они разные. */
 const setRatio = (node, key) => {
   const size = typeof CARD_SIZES !== 'undefined' ? CARD_SIZES[key] : null;
@@ -171,6 +187,23 @@ function cardTitle(d, id) {
   const n = String(id ?? d.name).match(/(\d+)\s*$/)?.[1] ?? '';
   return `Интербеллум ${Number(n) + 1 || ''}`.trim();
 }
+/** Имя карты для людей — одно и то же под картой, на кнопках и в журнале. */
+const titleOf = id => cardTitle(DEFS[id], id);
+/** Имя карты в линии игрока; при одинаковых картах добавляется позиция: «Шахта 3 (2-я)». */
+function lineTitle(p, card) {
+  const t = titleOf(card.definitionId);
+  const same = p.cards.filter(c => titleOf(c.definitionId) === t);
+  return same.length > 1 ? `${t} (${p.cards.indexOf(card) + 1}-я в линии)` : t;
+}
+/** Кнопка, которая при наведении подсвечивает карту в линии. */
+function pointsAt(btn, cardId) {
+  const on = () => document.querySelector(`#line-strip .card[data-card="${cardId}"]`)?.classList.add('pointed');
+  const off = () => document.querySelectorAll('.card.pointed').forEach(n => n.classList.remove('pointed'));
+  btn.addEventListener('mouseenter', on); btn.addEventListener('focus', on);
+  btn.addEventListener('mouseleave', off); btn.addEventListener('blur', off);
+  return btn;
+}
+
 function plainFace(card, d) {
   const tone = toneOf(d), num = Number(String(card.definitionId).match(/(\d+)\s*$/)?.[1] ?? 0);
   const rows = [...d.effects, ...(card.upgraded ? d.advanced : [])];
@@ -244,7 +277,7 @@ function cardNode(card, { owner = null, lot = null, mode = 'view' } = {}) {
     img.src = src(faceKey(card));
     setRatio(face, faceKey(card));
     if (/^(co-ib|st-off|uni|char)-/.test(faceKey(card))) img.classList.add('trim');
-    img.alt = `${d.name}${card.upgraded ? ', улучшенная сторона' : ''}`;
+    img.alt = `${cardTitle(d, card.definitionId)}${card.upgraded ? ', улучшенная сторона' : ''}`;
     face.append(img);
   } else {
     face.classList.add('plain-face');
@@ -267,7 +300,7 @@ function cardNode(card, { owner = null, lot = null, mode = 'view' } = {}) {
   }
   body.append(face);
 
-  if (mode !== 'zoom') {
+  if (mode !== 'zoom' && mode !== 'gallery') {
     const zb = el('button', 'zoom-btn', '⤢');
     zb.type = 'button'; zb.title = 'Посмотреть карту крупно'; zb.setAttribute('aria-label', 'Посмотреть карту крупно');
     zb.addEventListener('click', ev => { ev.stopPropagation(); zoomCard(card); });
@@ -303,10 +336,12 @@ function managerTokenHtml(m, { mini = false } = {}) {
 /* ---------- карточка промышленника, нарисованная ---------- */
 const portraitKey = c => 'port-' + keyOf(c.images?.[0] ?? '');
 const hasPortrait = c => Boolean(c?.images?.length && hasPacked(portraitKey(c)));
+/** Текст способности: у Артура с «Интербеллумом» действует обновлённая карта. */
+const capText = c => (c.textExpansion && S()?.config?.pairedExtraDisc ? c.textExpansion : c.text);
 function heroCardHtml(c, { compact = false, big = false } = {}) {
   const img = hasPortrait(c) ? `<img class="hc-portrait" src="${src(portraitKey(c))}" alt="Портрет: ${esc(c.name)}">` : '';
   return `<div class="hero-card ${compact ? 'compact' : ''} ${big ? 'big' : ''}" data-cap="${c.id}">${img}
-    <div class="hc-text"><div class="hc-kind">Промышленник</div><div class="hc-name">${esc(c.name)}</div><p>${esc(c.text)}</p></div></div>`;
+    <div class="hc-text"><div class="hc-kind">Промышленник</div><div class="hc-name">${esc(c.name)}</div><p>${esc(capText(c))}</p></div></div>`;
 }
 function zoomHero(c) {
   const z = $('#zoom');
@@ -369,10 +404,17 @@ function zoomCard(card) {
 }
 
 /* ---------- расчёт ставки: главный элемент интерфейса ---------- */
+/** Уголь, который уйдёт на диск переменного капитала, и итоговый номинал ставки. */
+function stakeOf(p, disc) {
+  if (!disc) return { coal: 0, nominal: null, value: null };
+  if (disc.kind !== 'variable') return { coal: 0, nominal: disc.value, value: disc.value };
+  return { coal: ui.varValue, nominal: ui.varValue + variableBonus(p), value: ui.varValue };
+}
 function ledgerNode(lot) {
   const s = S(), p = me();
   const disc = ui.disc && p.discs.find(d => d.id === ui.disc);
-  const value = disc ? (disc.kind === 'variable' ? ui.varValue : disc.value) : null;
+  const stake = stakeOf(p, disc);
+  const value = stake.value, nominal = stake.nominal;
   const box = el('div', 'ledger');
 
   if (!disc) {
@@ -382,9 +424,9 @@ function ledgerNode(lot) {
   }
   const err = bidError(s, p.id, disc.id, lot.id, value);
   if (lot.kind === 'university') {
-    const units = value + (p.ability === 'compensation-plus-one' ? 1 : 0);
+    const units = nominal + (p.ability === 'compensation-plus-one' ? 1 : 0);
     box.innerHTML = `
-      <div class="ledger-head">СТАВКА ${value} НА УНИВЕРСИТЕТ</div>
+      <div class="ledger-head">СТАВКА ${nominal} НА УНИВЕРСИТЕТ</div>
       <div class="ledger-row win"><span class="ledger-key">Выиграете</span>
         <span class="ledger-val">жетон управляющего: ${lot.token ? esc(MANAGERS[lot.token].text) : 'уже забран'}</span></div>
       <div class="ledger-row lose"><span class="ledger-key">Проиграете</span>
@@ -392,7 +434,7 @@ function ledgerNode(lot) {
     if (err) box.append(el('div', 'ledger-note', `<em>${esc(err)}</em>`));
     return box;
   }
-  const out = bidOutcome(s, DEFS, p.id, lot.id, value);
+  const out = bidOutcome(s, DEFS, p.id, lot.id, nominal, stake.coal);
   const d = DEFS[lot.card.definitionId];
   const compText = out.compensation.kind === 'gain'
     ? `${bundleHtml(out.compensation.gain, out.units)}`
@@ -401,15 +443,15 @@ function ledgerNode(lot) {
       : '<span class="res zero"><span class="num">ничего: не хватает сырья</span></span>';
 
   box.innerHTML = `
-    <div class="ledger-head">СТАВКА ${value} НА «${esc(d.name).toUpperCase()}»</div>
+    <div class="ledger-head">СТАВКА ${nominal} НА «${esc(titleOf(lot.card.definitionId)).toUpperCase()}»</div>
     <div class="ledger-row win"><span class="ledger-key">Выиграете</span>
       <span class="ledger-val">предприятие в свою линию${out.leading ? '' : `<br><span class="cap">сейчас впереди ставка ${out.bestRival}</span>`}</span></div>
     <div class="ledger-row lose"><span class="ledger-key">Проиграете</span>
       <span class="ledger-val recipe">${compText}</span></div>`;
 
   const notes = [];
-  if (p.ability === 'compensation-plus-one' && value >= 0) notes.push(`Генри: компенсация считается как <em>${out.units}</em>, а не ${value}.`);
-  if (disc.kind === 'variable') notes.push(`Переменный диск: <em>${value}</em> угля спишется сразу. Останется ${p.wallet.coal - value}.`);
+  if (p.ability === 'compensation-plus-one' && nominal >= 0) notes.push(`Генри: компенсация считается как <em>${out.units}</em>, а не ${nominal}.`);
+  if (disc.kind === 'variable') notes.push(`Переменный диск: <em>${stake.coal}</em> угля спишется сразу (останется ${p.wallet.coal - stake.coal}), номинал ставки — <em>${nominal}</em>${variableBonus(p) ? ' с прибавкой Капиталиста +2' : ''}.`);
   if (out.compensation.kind === 'convert' && out.max < out.units && out.max > 0) notes.push(`Сырья хватит только на <em>${out.max}</em> из ${out.units} операций.`);
   if (err) notes.push(`<em>${esc(err)}</em>`);
   if (notes.length) box.append(el('div', 'ledger-note', notes.join('<br>')));
@@ -491,6 +533,26 @@ function renderRivals() {
   }
 }
 
+/** Плашка на разобранном лоте: кому досталась карта или жетон. */
+function lotResult(s, lot) {
+  const box = el('div', 'lot-result');
+  let who = null;
+  if (lot.kind === 'university') {
+    const win = pickWinner(lot.bids, id => s.players.find(x => x.id === id));
+    who = win ? s.players.find(x => x.id === win.playerId) : null;
+    box.innerHTML = who ? `жетон → <b>${esc(who.name)}</b>` : 'жетон сброшен';
+  } else {
+    const e = [...s.events].reverse().find(x => x.cardId === lot.card.id && ['CardWon', 'AgentTookCard', 'CardDiscarded'].includes(x.type));
+    who = e?.type === 'CardWon' ? s.players.find(x => x.id === e.playerId) : e?.type === 'AgentTookCard' ? s.players.find(x => x.agent) : null;
+    box.innerHTML = e?.type === 'CardWon' ? `→ <b>${esc(who.name)}</b> за ${e.value}`
+      : e?.type === 'AgentTookCard' ? `→ <b>агент</b> за ${e.value}` : 'никто не взял';
+  }
+  if (who) box.style.setProperty('--seat', SEATS[who.seat % SEATS.length].base);
+  // Анимируем только только что разобранный лот, иначе плашки мигали бы при каждой перерисовке.
+  if (!(ui.seenResolved ?? new Set()).has(lot.id)) box.classList.add('fresh');
+  return box;
+}
+
 /* ---------- сцена: лоты или разбор ---------- */
 function renderStage() {
   const s = S(), head = $('#stage-head'), strip = $('#stage-strip');
@@ -505,7 +567,10 @@ function renderStage() {
     s.lots.forEach((lot, i) => {
       const node = lot.kind === 'university' ? tableNode(lot) : cardNode(lot.card, { lot });
       const current = s.phase === 'settlement' && i === s.settlement.index;
-      if (lot.resolved) node.classList.add('dim');
+      if (lot.resolved) {
+        node.classList.add('dim');
+        node.querySelector('.card-body')?.append(lotResult(s, lot));
+      }
       if (current) node.classList.add('lifted');
 
       if (s.phase === 'auction') {
@@ -619,13 +684,13 @@ function renderPrompt() {
     if (chosen?.kind === 'variable') {
       const wrap = el('span', 'counter');
       wrap.style.margin = '0';
-      wrap.innerHTML = `<span class="cap">номинал</span>`;
+      wrap.innerHTML = `<span class="cap">уголь на диск</span>`;
       const minus = el('button', '', '−'), plus = el('button', '', '+');
       const val = el('span', 'times', ui.varValue);
       minus.disabled = ui.varValue <= 0; plus.disabled = ui.varValue >= p.wallet.coal;
       minus.onclick = () => { ui.varValue--; render(); };
       plus.onclick = () => { ui.varValue++; render(); };
-      wrap.append(minus, val, plus, el('span', 'cap', `уголь: ${p.wallet.coal}`));
+      wrap.append(minus, val, plus, el('span', 'cap', `номинал ставки: <b>${ui.varValue + variableBonus(p)}</b> · угля в запасе: ${p.wallet.coal}`));
       box.append(wrap);
     }
     if (pair) {
@@ -786,12 +851,14 @@ function managerPanel(card, p) {
       });
     } else {
       const label = boost.kind === 'upgrade-self' ? 'Улучшить это предприятие'
-        : boost.kind === 'discard-self' ? `Вывести предприятие и взять ${boost.gain.money} денег`
+        : boost.kind === 'discard-self' ? `Сбросить предприятие и взять ${boost.gain.money} денег`
           : boost.kind === 'repeat-supply' ? 'Разыграть поставку ещё раз'
             : `Взять ${Object.entries(boost.gain).map(([k, v]) => `${v} ${RES_SHORT[k]}`).join(' и ')} на карту`;
       const btn = el('button', 'act', label);
-      if (boost.kind === 'upgrade-self')
-        btn.disabled = card.upgraded || !canPay(p.wallet, boost.cost) || DEFS[card.definitionId].kind !== 'company';
+      if (boost.kind === 'upgrade-self') {
+        const pool = Object.fromEntries(Object.keys(p.wallet).map(k => [k, p.wallet[k] + (card.local?.[k] ?? 0)]));
+        btn.disabled = card.upgraded || !canPay(pool, boost.cost) || DEFS[card.definitionId].kind !== 'company';
+      }
       btn.onclick = () => act({ type: 'UseManager', token });
       row.append(btn);
     }
@@ -819,7 +886,7 @@ function extraPanels() {
     box.append(el('div', 'recipe', `${bundleHtml({ coal: 1, upgrade: 1 })}<span class="to">→</span><span>модернизация</span>`));
     const row = el('div', 'counter');
     targets.forEach(c => {
-      const btn = el('button', 'act', `Улучшить: ${esc(cardTitle(DEFS[c.definitionId], c.definitionId))}`);
+      const btn = pointsAt(el('button', 'act', `Улучшить: ${esc(lineTitle(p, c))}`), c.id);
       btn.onclick = () => act({ type: 'Upgrade', cardId: c.id });
       row.append(btn);
     });
@@ -835,7 +902,7 @@ function extraPanels() {
       box.append(el('div', 'effect-head', `<span>Сосед: 1 металл — использовать предприятие соседа справа (${esc(right.name)})</span>`));
       const row = el('div', 'counter');
       cards.forEach(c => {
-        const btn = el('button', 'act ghost', `${esc(cardTitle(DEFS[c.definitionId], c.definitionId))}${c.upgraded ? ' (улучшено)' : ''}`);
+        const btn = el('button', 'act ghost', `${esc(lineTitle(right, c))}${c.upgraded ? ' (улучшено)' : ''}`);
         btn.onclick = () => act({ type: 'UseNeighbourCard', cardId: c.id });
         row.append(btn);
       });
@@ -895,10 +962,10 @@ function renderEffectMain() {
       const wrap = el('div', 'bid-dock');
       wrap.append(ledgerNode(lot));
       const disc = ui.disc && p.discs.find(d => d.id === ui.disc);
-      const value = disc ? (disc.kind === 'variable' ? ui.varValue : disc.value) : null;
+      const { value, nominal } = stakeOf(p, disc);
       const err = !myTurn() ? 'Сейчас ходит другой игрок'
         : !disc ? 'Сначала выберите диск' : bidError(s, p.id, disc.id, lot.id, value);
-      const cta = el('button', `card-cta ${err ? '' : 'go'}`, err ? esc(err) : `Поставить диск ${value}`);
+      const cta = el('button', `card-cta ${err ? '' : 'go'}`, err ? esc(err) : `Поставить диск ${nominal}`);
       cta.disabled = !!err;
       cta.addEventListener('click', () => {
         act({ type: 'Bid', discId: disc.id, lotId: lot.id, value });
@@ -933,7 +1000,7 @@ function renderEffectMain() {
   if (supply) {
     const e = supply.effect;
     let max = 0;
-    for (let t = e.limit; t >= 1; t--) if (canPay(p.wallet, e.cost, t)) { max = t; break; }
+    max = supplyCapacity(s, DEFS, p.id, e);
     slot.append(counterPanel({
       title: 'Поставка — однократно, вне очереди производства', effect: e, max,
       runLabel: 'Взять поставку', skipLabel: 'Отказаться',
@@ -993,9 +1060,11 @@ function renderEffectMain() {
 
   if (e.kind === 'upgrade') {
     const box = el('div', 'effect upgrade-step');
-    const cost = upgradeCost(p, e.cost);
+    const local = card.local ?? {};
+    const cost = upgradeCost({ ...p, wallet: { ...p.wallet, upgrade: p.wallet.upgrade + (local.upgrade ?? 0) } }, e.cost);
     const targets = p.cards.filter(c => !c.upgraded && DEFS[c.definitionId].kind === 'company');
-    const paid = canPay(p.wallet, cost);
+    const pool = Object.fromEntries(Object.keys(p.wallet).map(k => [k, p.wallet[k] + (local[k] ?? 0)]));
+    const paid = canPay(pool, cost);
     const offer = targets.length > 0 && paid;
 
     box.append(el('div', 'effect-head',
@@ -1017,7 +1086,7 @@ function renderEffectMain() {
       row.append(el('span', 'cap', `Не хватает ${short}.`));
     } else {
       targets.forEach(c => {
-        const btn = el('button', 'act', `Улучшить: ${DEFS[c.definitionId].name}`);
+        const btn = pointsAt(el('button', 'act', `Улучшить: ${esc(lineTitle(p, c))}`), c.id);
         btn.onclick = () => act({ type: 'Upgrade', cardId: c.id });
         row.append(btn);
       });
@@ -1038,9 +1107,9 @@ function renderEffectMain() {
     const row = el('div', 'counter');
     const can = next && !next.upgraded && DEFS[next.definitionId].kind === 'company';
     if (!next) row.append(el('span', 'cap', 'Это предприятие последнее в линии.'));
-    else if (!can) row.append(el('span', 'cap', `«${esc(DEFS[next.definitionId].name)}» улучшить нельзя.`));
+    else if (!can) row.append(el('span', 'cap', `«${esc(lineTitle(p, next))}» улучшить нельзя.`));
     else {
-      const btn = el('button', 'act', `Улучшить следующее: ${esc(DEFS[next.definitionId].name)}`);
+      const btn = pointsAt(el('button', 'act', `Улучшить следующее: ${esc(lineTitle(p, next))}`), next.id);
       btn.onclick = () => act({ type: 'UpgradeNext' });
       row.append(btn);
     }
@@ -1052,11 +1121,9 @@ function renderEffectMain() {
   }
 
   if (e.kind === 'convert') {
-    const room = e.limit - a.used;
-    let max = 0;
-    for (let t = room; t >= 1; t--) if (canPay(p.wallet, e.cost, t)) { max = t; break; }
+    const max = convertCapacity(s, DEFS);
     slot.append(counterPanel({
-      title: `${esc(d.name)} — строка ${a.index + 1} из ${list.length}`,
+      title: `${esc(lineTitle(p, card))} — строка ${a.index + 1} из ${list.length}`,
       steps: list.length, stepIndex: a.index, effect: e, max,
       runLabel: 'Выполнить', skipLabel: a.used ? 'Дальше' : 'Пропустить строку',
       onRun: times => act({ type: 'Convert', times }),
@@ -1151,13 +1218,16 @@ const LOG_TEXT = {
   AuctionStarted: e => `Выставлено лотов: ${e.count}`,
   DeckRefilled: () => 'Невыкупленные лоты вернулись в колоду (в каталоге 31 предприятие вместо 36)',
   BidPlaced: (e, n) => `<b>${n(e.playerId)}</b> ставит ${e.value}${e.bonus ? ' (доп. двойка)' : ''}${e.roll ? ' · d6: ' + e.roll : ''}`,
-  AgentTookCard: e => `Агент забирает «${DEFS[e.definitionId].name}» за ${e.value} — карта выбывает из игры`,
+  AgentTookCard: e => `Агент забирает «${esc(titleOf(e.definitionId))}» за ${e.value} — карта выбывает из игры`,
   AgentBlocked: e => `Агенту ставить некуда (d6: ${e.roll})`,
   PairOffered: (e, n) => `<b>${n(e.playerId)}</b> может доставить дополнительную двойку`,
   AuctionClosed: () => 'Ставок больше нет',
   Compensation: (e, n) => e.times ? `<b>${n(e.playerId)}</b> берёт компенсацию ×${e.times}` : `<b>${n(e.playerId)}</b> без компенсации`,
-  CompensationChosen: (e, n) => `<b>${n(e.playerId)}</b> применяет компенсацию ×${e.times}`,
-  CardWon: (e, n) => `<b>${n(e.playerId)}</b> забирает «${DEFS[e.definitionId].name}» за ${e.value}`,
+  CompensationChosen: (e, n) => {
+    const k = e.times ?? (e.picks ?? []).reduce((a, b) => a + b, 0);
+    return k ? `<b>${n(e.playerId)}</b> применяет компенсацию ×${k}` : `<b>${n(e.playerId)}</b> отказывается от компенсации`;
+  },
+  CardWon: (e, n) => `<b>${n(e.playerId)}</b> забирает «${esc(titleOf(e.definitionId))}» за ${e.value}`,
   CardDiscarded: () => 'Лот никто не взял',
   ManagerWon: (e, n) => `<b>${n(e.playerId)}</b> забирает жетон управляющего за ${e.value}`,
   ManagersPlaced: (e, n) => e.count ? `<b>${n(e.playerId)}</b> расставляет управляющих: ${e.count}` : null,
@@ -1194,6 +1264,9 @@ const LOG_TEXT = {
 
 function renderLog() {
   const s = S();
+  const stamp = `${ui.record?.state === s ? '' : 'x'}${s.events.length}:${s.events.at(-1)?.seq ?? 0}`;
+  if (ui.logStamp === stamp && ui.logRecord === ui.record) return;   // журнал не менялся
+  ui.logStamp = stamp; ui.logRecord = ui.record;
   const name = id => esc(s.players.find(p => p.id === id)?.name ?? '');
   const list = $('#log');
   list.innerHTML = '';
@@ -1229,6 +1302,7 @@ function render() {
     ui.prevWallets[p.id] = { ...p.wallet };
   }
 
+  ui.seenResolved = new Set((s.lots ?? []).filter(l => l.resolved).map(l => l.id));
   ui.seenUp = {};
   for (const p of s.players) for (const c of p.cards) ui.seenUp[c.id] = Boolean(c.upgraded);
 
@@ -1293,34 +1367,44 @@ function showResult() {
 
 /* ---------- каталог карт ---------- */
 function renderGallery(filter = 'company') {
-  const cap = c => ({ key: capImage(c), name: c.name, text: c.text });
-  const groups = {
-    company: () => PACK.deck.filter((v, i, a) => a.indexOf(v) === i).flatMap(id => DEFS[id].images.map(i => ({ key: keyOf(i), name: DEFS[id].name }))),
-    expansion: () => PACK.expansionDeck.flatMap(id => DEFS[id].images.map(i => ({ key: keyOf(i), name: cardTitle(DEFS[id], id) }))),
-    startup: () => [...PACK.startupIds, ...PACK.expansionStartupIds].flatMap(id => DEFS[id].images.map(i => ({ key: keyOf(i), name: DEFS[id].name }))),
-    university: () => PACK.universities.flatMap(u => u.sides).filter(x => x.image).map(x => ({ key: x.image, name: 'Университет' })),
-    manager: () => [...PACK.managers, PACK.personalManager].filter(m => m?.image).map(m => ({ key: m.image, name: m.text, wide: true })),
-    capitalist: () => [...PACK.capitalists, ...PACK.expansionCapitalists].map(cap),
-  };
   const tabs = [['company', 'Предприятия'], ['expansion', 'Интербеллум'], ['startup', 'Стартовые'],
     ['university', 'Университеты'], ['manager', 'Управляющие'], ['capitalist', 'Промышленники']];
   const body = $('#gallery-body');
   body.innerHTML = `
     <h2>Карты стола</h2>
-    <p>Нажмите на карту, чтобы рассмотреть её крупно.</p>
+    <p>${filter === 'company' || filter === 'expansion' ? 'У каждого предприятия две стороны: обычная и после улучшения. ' : ''}Нажмите на карту, чтобы рассмотреть её крупно.</p>
     <div class="tabs">${tabs.map(([k, t]) => `<button data-tab="${k}" class="${k === filter ? 'on' : ''}">${t}</button>`).join('')}</div>
-    <div class="gallery ${filter === 'capitalist' || filter === 'manager' ? 'wide' : ''}"></div>`;
+    <div class="gallery ${filter === 'capitalist' || filter === 'manager' ? 'wide' : 'cards'}"></div>`;
   const grid = body.querySelector('.gallery');
-  for (const item of groups[filter]().filter(i => hasPacked(i.key))) {
-    const box = el('div', 'g-item');
-    const img = el('img');
-    img.src = src(item.key); img.alt = item.name; img.loading = 'lazy';
-    img.onclick = () => zoom(item.key);
-    box.append(img);
-    if (item.text) box.append(el('div', 'g-cap', `<b>${esc(item.name)}</b><br><span>${esc(item.text)}</span>`));
+  const companyPair = id => {
+    const box = el('div', 'g-pair');
+    for (const upgraded of [false, true]) {
+      const card = { id: `g-${id}-${upgraded}`, definitionId: id, upgraded, usedRound: 0 };
+      const node = cardNode(card, { mode: 'gallery' });
+      node.querySelector('.card-face').onclick = () => zoomCard(card);
+      box.append(node);
+    }
+    return box;
+  };
+  if (filter === 'company') for (const id of [...new Set(PACK.deck)]) grid.append(companyPair(id));
+  if (filter === 'expansion') for (const id of PACK.expansionDeck) grid.append(companyPair(id));
+  if (filter === 'startup') for (const id of [...PACK.startupIds, ...PACK.expansionStartupIds]) {
+    const card = { id: `g-${id}`, definitionId: id, upgraded: false, usedRound: 0 };
+    const node = cardNode(card, { mode: 'gallery' });
+    node.querySelector('.card-face').onclick = () => zoomCard(card);
+    grid.append(node);
+  }
+  if (filter === 'university') for (const u of PACK.universities) for (const side of u.sides)
+    grid.append(tableNode({ id: `g-${side.id}`, table: { id: u.id, sideId: side.id, options: side.options }, token: null, bids: [] }));
+  if (filter === 'manager') for (const m of [...PACK.managers, PACK.personalManager].filter(Boolean)) {
+    const box = el('div', 'g-item', managerTokenHtml(m));
     grid.append(box);
   }
-  body.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => renderGallery(b.dataset.tab));
+  if (filter === 'capitalist') for (const c of [...PACK.capitalists, ...PACK.expansionCapitalists]) {
+    const box = el('div', 'g-item', heroCardHtml(c));
+    grid.append(box);
+  }
+  body.querySelectorAll('[data-tab]').forEach(btn => btn.onclick = () => renderGallery(btn.dataset.tab));
 }
 function zoom(key) {
   $('#zoom').innerHTML = `<img src="${src(key)}" alt="">`;
@@ -1401,6 +1485,7 @@ function openSetup() {
       universities: field('universities').checked,
       variableCapital: field('variable').checked,
         productionChain: field('chain').checked,
+        randomFirst: true,
         capitalists: field('capitalists').checked,
       }, PACK);
       if (ui.online) leaveOnline(false);

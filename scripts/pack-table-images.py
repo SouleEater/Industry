@@ -75,6 +75,11 @@ def cut_art(im, mockup, name=""):
     return art.resize((ART_WIDTH, round(art.height * ART_WIDTH / art.width)), Image.LANCZOS)
 
 
+# Полные сканы карт раньше шли в пакет целиком (~5 МБ). Карты, университеты, жетоны и
+# промышленники теперь рисуются по данным, поэтому сканы включаются только по флагу.
+WITH_SCANS = "--with-scans" in sys.argv
+
+
 def main() -> None:
     files = [(d, f) for d in SRCS if os.path.isdir(d) for f in sorted(os.listdir(d)) if f.lower().endswith(".jpg")]
     if not files:
@@ -107,6 +112,8 @@ def main() -> None:
                     images[pkey] = base64.b64encode(pbuf.getvalue()).decode("ascii")
                     sizes[pkey] = list(crop.size)
                     total += len(pbuf.getvalue())
+            if not WITH_SCANS:
+                continue   # стол рисует карты сам: полный скан нужен только с флагом --with-scans
             height = round(im.height * WIDTH / im.width)
             im = im.resize((WIDTH, height), Image.LANCZOS)
             buffer = __import__("io").BytesIO()

@@ -58,10 +58,12 @@ test('в сборке нет объявлений с одинаковым име
   assert.ok(seen.size > 40);
 });
 
-test('встроены изображения всех 72 сторон карт', build, () => {
+test('встроены иллюстрации всех сторон карт из макетов и портреты промышленников', build, () => {
   const source = fs.readFileSync(images, 'utf8');
-  const keys = [...source.matchAll(/"(\d{3}-\d{2})":/g)].map(m => m[1]);
-  assert.equal(new Set(keys).size, 72);
+  const arts = new Set([...source.matchAll(/"art-(\d{3}-\d{2})":/g)].map(m => m[1]));
+  const ports = new Set([...source.matchAll(/"port-(\d{3}-\d{2})":/g)].map(m => m[1]));
+  assert.equal(arts.size, 67, '62 стороны предприятий базы и 5 стартовых макетов');
+  assert.equal(ports.size, 5, 'портреты 5 промышленников из макетов');
 });
 
 test('размер сборки укладывается в лимит одностраничного артефакта', build, () => {

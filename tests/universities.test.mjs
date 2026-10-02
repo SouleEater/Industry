@@ -81,7 +81,10 @@ test('на каждый университет кладётся жетон из 
   const tokens = unis(s).map(l => l.token);
   assert.equal(tokens.every(t => typeof t === 'string'), true);
   assert.equal(new Set(tokens).size, tokens.length, 'жетоны разные');
-  assert.equal(s.managerDeck.length, auctionManagers.length - tokens.length, 'взяты из стопки');
+  // Без новых предприятий 2 жетона «повторить поставку» убраны в коробку (правила дополнения, стр. 9).
+  const pool = auctionManagers.filter(m => m.effect.kind !== 'repeat-supply');
+  assert.equal(s.managerDeck.length, pool.length - tokens.length, 'взяты из стопки');
+  assert.ok([...s.managerDeck, ...tokens].every(id => !id.startsWith('repeat-supply')), 'без новых предприятий повтора поставки нет');
 });
 
 test('без университетов ничего лишнего не появляется', () => {

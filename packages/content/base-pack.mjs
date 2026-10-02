@@ -10,7 +10,7 @@ const GROUP_LABEL = { oil: 'Нефть', metal: 'Металл', mine: 'Шахт�
 // limit: null в каталоге означает «кратность на макете не напечатана», а не бесконечность.
 // Движку нужно число, поэтому такая строка идёт ×1 и помечается для сверки.
 function playable(effect) {
-  if (effect.kind === 'upgrade') return { kind: 'upgrade' };
+  if (effect.kind === 'upgrade') return { kind: 'upgrade', ...(effect.cost ? { cost: effect.cost } : {}) };
   if (effect.kind === 'convert' && effect.limit === null) return { ...effect, limit: 1, limitUnknown: true };
   return effect;
 }
@@ -67,6 +67,9 @@ for (const [id, image] of Object.entries(OFFICIAL_START_IMAGE)) definitions[id].
 // Официальные портреты промышленников из «Персонажи.pdf». Карты Моники в этом файле нет.
 const OFFICIAL_CAPITALIST_IMAGE = { 'Эварист': 'char-05', 'Генри': 'char-03', 'Артур': 'char-06', 'Тимур': 'char-01' };
 for (const c of capitalistCards) if (OFFICIAL_CAPITALIST_IMAGE[c.name]) c.images = [`/apps/web/assets/official/${OFFICIAL_CAPITALIST_IMAGE[c.name]}.jpg`];
+// «Обновлённая карта промышленника с 2 заменяет аналогичную из базовой игры» (правила дополнения, стр. 3).
+for (const c of capitalistCards) if (c.ability === 'paired-extra-disc')
+  c.textExpansion = 'У вас есть дополнительный диск 2 (диск вашего цвета). В фазе аукциона вы должны выложить его одновременно с другой вашей ставкой (на другую карту).';
 
 // Стартовые предприятия дополнения.
 const expansionStartupIds = [];

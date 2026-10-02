@@ -97,7 +97,8 @@ test('«сбросить за 4 денег» убирает предприяти
   assert.equal(p.cards.length, cardsBefore - 1);
   assert.equal(p.cards.some(c => c.id === 'test-card'), false);
   assert.equal(s.production.active, null, 'использование закончилось вместе с картой');
-  assert.ok(s.discard.some(c => c.id === 'test-card'));
+  assert.ok((s.boxed ?? []).some(c => c.id === 'test-card'), 'сброшенная жетоном карта уходит в коробку');
+  assert.ok(!s.discard.some(c => c.id === 'test-card'), 'и не может вернуться в колоду');
   assert.ok(s.events.some(e => e.type === 'CardScrapped'));
 });
 

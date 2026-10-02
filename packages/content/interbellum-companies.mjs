@@ -43,6 +43,7 @@ const always = (rule, note, extra = {}) => ({ kind: 'permanent', rule, text: not
  * card(номер скана, компенсация, обычные строки, продвинутые строки, примечания)
  * Порядок строк — сверху вниз, как напечатано.
  */
+// У компенсации кратность не печатается: число операций задаёт значение диска, limit там не используется.
 const card = (scan, compensation, basic, advanced, notes = []) => ({
   id: `ib-${String(scan).padStart(2, '0')}`,
   source: { file: 'Карты_предприятий.pdf', page: scan + 1 },
@@ -87,7 +88,8 @@ export const interbellumCompanies = [
   card(14, ibTake(ibCoal(2)),
     [always('bonus-on-gain', 'В фазе производства каждый ваш эффект добычи угля приносит дополнительный уголь.', { resource: 'coal' })],
     [ibTake(ibUpg(1))]),
-  card(15, ibSwap(ibOil(1), ibMetal(3)), [ibSwap(ibCoal(2), ibMetal(1), 1)], [supply(ibSwap(ibOil(1), ibMoney(4), 4))]),
+  card(15, ibSwap(ibOil(1), ibMetal(3)), [ibSwap(ibCoal(1), ibMetal(1), 2)], [supply(ibSwap(ibOil(1), ibMoney(4), 4))],
+    ['Сверка с официальным сканом 01.10.2026: «×2» над стрелкой — кратность, на входе 1 уголь.']),
   card(16, ibSwap(ibCoal(1), ibMetal(1)), [ibSwap(ibCoal(2), ibUpg(1), 1)],
     [perCard(ibMetal(1), 'exchange', 'metal', 'Получите 1 металл за каждую вашу карту, где можете обменять металл.')]),
   card(17, ibSwap(ibMetal(1), ibOil(1)), [ibSwap(ibMetal(1), ibOil(1), 2)], [supply(ibTake(ibUpg(2)))]),

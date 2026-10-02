@@ -44,7 +44,7 @@ export async function startServer(overrides = {}) {
       `style-src ${styles.join(' ')} https://fonts.googleapis.com`,
       "style-src-attr 'unsafe-inline'",
       'font-src https://fonts.gstatic.com',
-      "img-src 'self' data:",
+      "img-src 'self' data: blob:",
       "connect-src 'self'",
       "form-action 'self'",
       "base-uri 'none'",

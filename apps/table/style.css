@@ -697,3 +697,70 @@ kbd { display: inline-block; min-width: 22px; padding: 1px 6px; border-radius: 5
 .hero-choice { flex: 1 1 280px; max-width: 420px; border-radius: 16px; cursor: pointer; }
 .hero-choice.picked .hero-card { box-shadow: 0 0 0 3px var(--brass); }
 .seats { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+
+/* ---------- анимации событий ---------- */
+.delta { position: fixed; z-index: 90; transform: translate(-50%, 0); pointer-events: none;
+  font: 600 20px/1 Oswald, sans-serif; text-shadow: 0 2px 6px #000; animation: delta 1.15s ease-out forwards; }
+.delta.up.money { color: var(--money); } .delta.up.coal { color: var(--coal); } .delta.up.metal { color: var(--metal); }
+.delta.up.oil { color: var(--oil); } .delta.up.upgrade { color: var(--upgrade); } .delta.down { color: #e6a1a1; }
+@keyframes delta { 0% { opacity: 0; transform: translate(-50%, 6px) scale(.8); } 15% { opacity: 1; transform: translate(-50%, -6px) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -46px) scale(1); } }
+
+.bid-pile .disc.drop { animation: drop .45s cubic-bezier(.3, 1.5, .5, 1); }
+@keyframes drop { 0% { transform: translateY(-60px) scale(1.4); opacity: 0; } 60% { opacity: 1; } 100% { transform: none; } }
+
+.card.won { animation: won .7s cubic-bezier(.2, 1.4, .4, 1); }
+.card.won .card-face { box-shadow: 0 0 0 3px var(--brass), 0 0 40px -4px var(--brass), var(--shadow-lift); transition: box-shadow 1.6s ease-out; }
+@keyframes won { 0% { transform: translateY(-40px) scale(.85) rotate(-4deg); opacity: 0; } 100% { transform: none; opacity: 1; } }
+
+.card-face.shine { position: relative; }
+.card-face.shine::before { content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 245, 200, .75) 50%, transparent 70%);
+  background-size: 250% 100%; animation: shine 1s ease-out forwards; }
+@keyframes shine { from { background-position: 130% 0; } to { background-position: -30% 0; } }
+
+.card.running .card-face { animation: running 1.8s ease-in-out infinite; }
+@keyframes running { 50% { box-shadow: 0 0 0 3px var(--ember), 0 0 48px -4px var(--ember); } }
+.card.lifted:not(.picked) .card-face { animation: running 1.4s ease-in-out infinite; }
+
+.card.pointed .card-face { box-shadow: 0 0 0 3px var(--upgrade), 0 0 30px -4px var(--upgrade), var(--shadow-lift); }
+.card.pointed { transform: translateY(-6px); }
+
+.act, .card-cta, .chip, .disc { transition: transform .12s, filter .15s, box-shadow .15s, background .15s, color .15s, border-color .15s; }
+.act:not(:disabled):active, .card-cta:not(:disabled):active { transform: scale(.97); }
+dialog[open] { animation: pop .22s cubic-bezier(.2, .9, .3, 1.2); }
+@keyframes pop { from { opacity: 0; transform: translateY(12px) scale(.97); } }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+.turn-badge:not(.wait) { animation: pulse 1.6s ease-in-out infinite; }
+
+/* кнопка «посмотреть крупно» — на иллюстрации, а не поверх полосы компенсации */
+.card-body { container-type: inline-size; }
+.card-body:has(.card-face.drawn) .zoom-btn { top: calc(19cqw + 6px); right: 6px; width: 26px; height: 26px; font-size: 14px; }
+@container (max-width: 130px) { .zoom-btn { display: none; } }
+.drawn .df-body { justify-content: center; }
+
+/* галерея: нарисованные карты, у предприятий обе стороны рядом */
+.gallery.cards { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); align-items: start; }
+.gallery.cards .card { --card-w: 118px; }
+.g-pair { display: flex; gap: 10px; }
+.gallery .card-face { cursor: zoom-in; }
+.gallery .card-name { font-size: 12.5px; }
+
+/* итог разбора на лоте */
+.lot-result { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 4; white-space: nowrap;
+  padding: 4px 10px; border-radius: 999px; font-size: 12.5px; color: #fff; background: rgba(12, 18, 25, .9);
+  border: 2px solid var(--seat, var(--edge)); box-shadow: 0 6px 14px -6px #000; }
+.lot-result.fresh { animation: result-in .45s cubic-bezier(.2, 1.4, .4, 1); }
+@keyframes result-in { from { opacity: 0; transform: translate(-50%, 10px) scale(.8); } }
+.card.dim .lot-result { filter: none; }
+.card.dim { filter: none; }
+.card.dim .card-face { filter: grayscale(.75) brightness(.55); }
+
+/* наклон лота при наведении и мерцание выбранного диска */
+.stage .card[tabindex] .card-face { transition: transform .25s cubic-bezier(.2, .8, .3, 1), box-shadow .25s; }
+@media (hover: hover) {
+  .stage .card[tabindex]:hover .card-face { transform: perspective(700px) rotateX(5deg) translateY(-3px); box-shadow: 0 22px 36px -16px #000; }
+}
+.disc.chosen { animation: chosen 1.4s ease-in-out infinite; }
+@keyframes chosen { 50% { box-shadow: 0 0 0 3px var(--brass), 0 0 22px 2px rgba(226, 176, 74, .55), 0 10px 18px -6px #000; } }
+@media (prefers-reduced-motion: reduce) { .disc.chosen, .card.running .card-face, .card.lifted .card-face { animation: none !important; } }

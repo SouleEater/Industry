@@ -2,12 +2,12 @@
    Собирается сразу после ui.js. render() вызывает afterRender(s) в конце каждого кадра. */
 
 const PREFS_KEY = 'industry.table.prefs';
-const prefs = { sound: true, notify: false, feed: true, banner: true, handoff: false, ...loadPrefs() };
+const prefs = { sound: true, sfx: true, anim: true, notify: false, feed: true, banner: true, handoff: false, ...loadPrefs() };
 function loadPrefs() { try { return JSON.parse(localStorage.getItem(PREFS_KEY)) ?? {}; } catch { return {}; } }
 function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* приватный режим */ } }
 
 const BASE_TITLE = document.title;
-const watch = { seq: null, phase: null, round: null, mine: false, actor: null, record: null };
+const watch = { seq: null, phase: null, round: null, mine: false, actor: null, record: null, wallet: null, cards: null, bids: null };
 
 /* ---------- звук: короткий двухтоновый сигнал без файлов ---------- */
 let audio = null;
@@ -31,6 +31,95 @@ function chime(kind = 'turn') {
 document.addEventListener('pointerdown', () => {
   if (!audio && prefs.sound) { try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch { /* нет звука */ } }
 }, { once: true });
+
+/* ---------- звуковые эффекты игровых событий ---------- */
+function tone(freq, start, dur, { type = 'sine', vol = 0.15, slide = 0 } = {}) {
+  const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime + start;
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  if (slide) o.frequency.exponentialRampToValueAtTime(freq * slide, t + dur);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(audio.destination); o.start(t); o.stop(t + dur + 0.02);
+}
+function thud(start, vol = 0.22) {
+  // короткий шум с фильтром — стук деревянного диска о стол
+  const len = Math.floor(audio.sampleRate * 0.08), buf = audio.createBuffer(1, len, audio.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+  const src = audio.createBufferSource(), f = audio.createBiquadFilter(), g = audio.createGain(), t = audio.currentTime + start;
+  f.type = 'lowpass'; f.frequency.value = 900; g.gain.value = vol;
+  src.buffer = buf; src.connect(f).connect(g).connect(audio.destination); src.start(t);
+}
+const SFX = {
+  disc: () => { thud(0); tone(180, 0, 0.12, { type: 'triangle', vol: 0.12, slide: 0.7 }); },
+  coin: () => { tone(1318, 0, 0.12, { type: 'triangle', vol: 0.09 }); tone(1760, 0.07, 0.22, { type: 'triangle', vol: 0.08 }); },
+  resource: () => tone(520, 0, 0.1, { type: 'triangle', vol: 0.07, slide: 1.3 }),
+  upgrade: () => [523, 659, 784, 1046].forEach((f, i) => tone(f, i * 0.07, 0.25, { type: 'triangle', vol: 0.09 })),
+  win: () => { [392, 494, 587].forEach(f => tone(f, 0, 0.5, { vol: 0.07 })); tone(784, 0.12, 0.45, { vol: 0.06 }); },
+  whoosh: () => tone(300, 0, 0.25, { type: 'sawtooth', vol: 0.03, slide: 2.4 }),
+};
+let sfxLast = {};
+function sfx(kind) {
+  if (!prefs.sfx || !SFX[kind]) return;
+  const now = Date.now();
+  if (now - (sfxLast[kind] ?? 0) < 90) return;   // пачка одинаковых событий звучит один раз
+  sfxLast[kind] = now;
+  try {
+    audio ??= new (window.AudioContext || window.webkitAudioContext)();
+    if (audio.state === 'suspended') audio.resume();
+    SFX[kind]();
+  } catch { /* без звука */ }
+}
+const EVENT_SFX = {
+  BidPlaced: 'disc', CardWon: 'win', ManagerWon: 'win', AgentTookCard: 'disc', CardUpgraded: 'upgrade',
+  ConversionPerformed: 'coin', ResourceGained: 'resource', Compensation: 'resource', CompensationChosen: 'resource',
+  SupplyTaken: 'resource', CardScrapped: 'coin', CardStarted: 'whoosh', ManagerBonus: 'coin',
+};
+
+/* ---------- анимации ---------- */
+const reduced = () => !prefs.anim || Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+/** Всплывающее «+2» / «−1» над ресурсом в вашей панели. */
+function floatDelta(kind, diff) {
+  const target = document.querySelector(`.vault .res.${kind}`);
+  if (!target) return;
+  const r = target.getBoundingClientRect();
+  const d = el('div', `delta ${diff > 0 ? 'up' : 'down'} ${kind}`, `${diff > 0 ? '+' : '−'}${Math.abs(diff)}`);
+  d.style.left = `${r.left + r.width / 2}px`; d.style.top = `${r.top}px`;
+  document.body.append(d);
+  setTimeout(() => d.remove(), 1200);
+}
+function pulse(selector, cls) {
+  document.querySelectorAll(selector).forEach(n => { n.classList.remove(cls); void n.offsetWidth; n.classList.add(cls); });
+}
+function visualEffects(s, fresh) {
+  try { visualEffectsUnsafe(s, fresh); } catch { /* анимация не должна ломать игру */ }
+}
+function visualEffectsUnsafe(s, fresh) {
+  const mine = me();
+  if (watch.meId !== mine.id) { watch.wallet = null; watch.cards = null; watch.meId = mine.id; }
+  if (!reduced()) {
+    // ресурсы: всплывающие изменения
+    if (watch.wallet) for (const k of ['money', 'coal', 'metal', 'oil', 'upgrade']) {
+      const diff = mine.wallet[k] - (watch.wallet[k] ?? 0);
+      if (diff) floatDelta(k, diff);
+    }
+    // новая карта в вашей линии
+    if (watch.cards) for (const c of mine.cards) if (!watch.cards.has(c.id) && !c.borrowed) pulse(`#line-strip .card[data-card="${c.id}"]`, 'won');
+    // свежие диски на лотах
+    if (watch.bids) for (const lot of s.lots) {
+      const before = watch.bids[lot.id] ?? 0;
+      if (lot.bids.length > before) {
+        const discs = document.querySelectorAll(`.card[data-lot="${lot.id}"] .bid-pile .disc`);
+        for (let i = before; i < discs.length; i++) discs[i].classList.add('drop');
+      }
+    }
+    // улучшение: вспышка
+    for (const e of fresh) if (e.type === 'CardUpgraded') pulse(`.card[data-card="${e.cardId}"] .card-face`, 'shine');
+  }
+  watch.wallet = { ...mine.wallet };
+  watch.cards = new Set(mine.cards.map(c => c.id));
+  watch.bids = Object.fromEntries(s.lots.map(l => [l.id, l.bids.length]));
+}
 
 /* ---------- системное уведомление, когда вкладка скрыта ---------- */
 function systemNotify(title, body) {
@@ -88,6 +177,8 @@ function afterRender(s) {
   if (watch.record !== ui.record || watch.seq == null || s.events.length && s.events.at(-1).seq < watch.seq) {
     watch.record = ui.record; watch.seq = s.events.at(-1)?.seq ?? 0; watch.phase = s.phase; watch.round = s.round;
     watch.mine = myTurn(); watch.actor = currentActor(s);
+    watch.meId = me().id; watch.wallet = { ...me().wallet }; watch.cards = new Set(me().cards.map(c => c.id));
+    watch.bids = Object.fromEntries(s.lots.map(l => [l.id, l.bids.length]));
     updateTitle(s); return;
   }
   const mine = me();
@@ -96,8 +187,12 @@ function afterRender(s) {
   const online = Boolean(ui.online?.playing);
 
   // Лента: действия других игроков (в онлайне) и агента (всегда).
-  for (const e of s.events) {
-    if (e.seq <= watch.seq) continue;
+  const fresh = s.events.filter(e => e.seq > watch.seq);
+  const kinds = new Set(fresh.map(e => EVENT_SFX[e.type]).filter(Boolean));
+  // один самый «важный» звук на кадр
+  for (const k of ['win', 'upgrade', 'coin', 'disc', 'resource', 'whoosh']) if (kinds.has(k)) { sfx(k); break; }
+  visualEffects(s, fresh);
+  for (const e of fresh) {
     if (!FEED_TYPES.has(e.type)) continue;
     const other = e.playerId && e.playerId !== mine.id;
     const agent = e.playerId === 'agent' || e.type === 'AgentTookCard';
@@ -150,7 +245,9 @@ function showSettings() {
   const perm = typeof Notification === 'undefined' ? 'не поддерживаются этим браузером'
     : Notification.permission === 'denied' ? 'запрещены в браузере — разрешите их в настройках сайта' : '';
   $('#settings-body').innerHTML = `<h2>Настройки</h2>
-    ${row('sound', 'Звук', 'Сигнал, когда наступает ваш ход, и в конце партии.')}
+    ${row('sound', 'Сигнал хода', 'Сигнал, когда наступает ваш ход, и в конце партии.')}
+    ${row('sfx', 'Звуки игры', 'Стук диска, монеты, модернизация, выигранное предприятие.')}
+    ${row('anim', 'Анимации', 'Всплывающие изменения ресурсов, переворот и вспышка карт, падающие диски.')}
     ${row('notify', 'Уведомления', `Системное уведомление о вашем ходе, если вкладка свёрнута (онлайн-партия).${perm ? ` Сейчас: ${perm}.` : ''}`)}
     ${row('feed', 'Лента событий', 'Короткие сообщения о ставках и покупках соперников и агента.')}
     ${row('banner', 'Баннеры этапов', 'Крупная надпись при смене раунда, этапа и игрока.')}
@@ -167,7 +264,11 @@ function showSettings() {
     }
     savePrefs();
   });
-  $('#test-sound').onclick = () => { const was = prefs.sound; prefs.sound = true; chime('turn'); prefs.sound = was; };
+  $('#test-sound').onclick = () => {
+    const was = prefs.sfx; prefs.sfx = true; sfxLast = {};
+    ['disc', 'coin', 'upgrade', 'win'].forEach((k, i) => setTimeout(() => { sfxLast = {}; sfx(k); }, i * 450));
+    prefs.sfx = was;
+  };
   $('#settings').showModal();
 }
 

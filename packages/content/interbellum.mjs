@@ -57,7 +57,7 @@ export const managerTokens = [
     'Можно потратить 1 металл и перевернуть это предприятие на улучшенную сторону.',
     { kind: 'upgrade-self', cost: { metal: 1 } }),
   ...managerToken('discard-for-money', 2,
-    'Можно вывести это предприятие из игры и получить 4 денег.',
+    'Сбросьте это предприятие, чтобы получить 4 денег.',
     { kind: 'discard-self', gain: { money: 4 } }),
   ...managerToken('money-per-exchange', 1,
     'За каждый обмен по этому предприятию вы получаете 1 деньгу.',
@@ -75,7 +75,7 @@ export const managerTokens = [
     'Если все строки продажи этого предприятия применены полностью, вы получаете 1 нефть.',
     { kind: 'if-all-sales', gain: { oil: 1 } }),
   ...managerToken('free-exchange-once', 1,
-    'Одно применение обмена по этому предприятию не тратит ресурсы.',
+    'Одно применение эффекта обмена этого предприятия не тратит ресурсы.',
     { kind: 'free-operation', on: 'exchange', times: 1 }),
   ...managerToken('repeat-each-exchange', 1,
     'Каждую строку обмена этого предприятия можно применить на 1 раз больше.',
@@ -84,10 +84,10 @@ export const managerTokens = [
     'Эффект поставки этого предприятия разыгрывается ещё раз.',
     { kind: 'repeat-supply' }),
   ...managerToken('local-coal-metal-or-oil', 1,
-    'Получите либо 1 уголь и 1 металл, либо 1 нефть. Тратятся только эффектами этого предприятия.',
+    'Получите либо 1 уголь и 1 металл, либо 1 нефть. Их можно потратить только эффектами этого предприятия; непотраченные сбрасываются.',
     { kind: 'local-choice', options: [{ coal: 1, metal: 1 }, { oil: 1 }] }),
   ...managerToken('local-four-coal', 1,
-    'Получите 4 угля. Тратятся только эффектами этого предприятия.',
+    'Получите 4 угля. Их можно потратить только эффектами этого предприятия; непотраченные сбрасываются.',
     { kind: 'local-gain', gain: { coal: 4 } }),
 ];
 
@@ -107,7 +107,7 @@ for (const token of managerTokens) {
 /** Личный управляющий промышленника: в стопку аукциона не попадает. */
 export const personalManager = {
   id: 'personal-manager', family: 'personal-manager', personal: true,
-  text: 'Получите либо 1 уголь и 1 металл, либо 1 жетон модернизации. Тратятся только эффектами этого предприятия.',
+  text: 'Получите либо 1 уголь и 1 металл, либо 1 жетон модернизации. Их можно потратить только эффектами этого предприятия; непотраченные сбрасываются.',
   effect: { kind: 'local-choice', options: [{ coal: 1, metal: 1 }, { upgrade: 1 }] },
   needs: null, playable: true, image: 'mgr-15',
 };
@@ -173,7 +173,7 @@ export const interbellumStarts = [
   {
     id: 'ib-start-2', name: 'Стартовое предприятие 7', image: 'st-off-6', starting: { coal: 1, metal: 1 },
     effects: [
-      { kind: 'permanent', rule: 'upgrade-on-gain', text: 'Всякий раз, когда получаете жетон модернизации, можете потратить жетон и уголь, чтобы модернизировать любое число карт.' },
+      { kind: 'permanent', rule: 'upgrade-on-gain', text: 'Всякий раз, когда получаете жетон модернизации, можете модернизировать карты, платя за каждую жетон модернизации и уголь.' },
       stTake({ upgrade: 1 }),
       stTrade({ coal: 1, metal: 1 }, { money: 4 }, 1),
     ],
